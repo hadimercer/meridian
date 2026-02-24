@@ -1,0 +1,43 @@
+# Environment & secrets
+.env
+.env.*
+*.env
+
+# Claude AI session memory — never commit
+CLAUDE.md
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Logs (generated at runtime)
+logs/
+*.log
+
+# Data files (may contain sensitive info)
+data/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Streamlit local cache
+.streamlit/secrets.toml

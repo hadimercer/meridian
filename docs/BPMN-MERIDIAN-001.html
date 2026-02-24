@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — BPMN Process Diagrams</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0E1117;
+    font-family: Arial, sans-serif;
+    color: #FAFAFA;
+    padding: 28px;
+  }
+  .page-header {
+    background: linear-gradient(90deg, #1B4F72 0%, #2E86C1 100%);
+    border-radius: 0.6rem;
+    padding: 1.2rem 1.8rem;
+    margin-bottom: 2rem;
+  }
+  .page-header h1 { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
+  .page-header p  { color: rgba(255,255,255,0.82); font-size: 0.88rem; }
+
+  .meta-strip {
+    display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 2rem;
+  }
+  .meta-item {
+    background: #262730; border-radius: 6px; padding: 9px 16px; font-size: 0.8rem;
+  }
+  .meta-item span { color: #4DB6AC; font-weight: 700; display: block;
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+
+  .diagram-block {
+    background: #1a1d24; border-radius: 8px; padding: 20px 24px; margin-bottom: 28px;
+  }
+  .diagram-block h2 {
+    font-size: 0.95rem; font-weight: 700; color: #4DB6AC;
+    margin-bottom: 18px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .svg-scroll { overflow-x: auto; }
+  svg { display: block; }
+
+  .legend-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px; margin-top: 0;
+  }
+  .legend-item {
+    background: #0E1117; border-radius: 6px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .legend-item svg { flex-shrink: 0; }
+  .legend-item p  { font-size: 0.78rem; color: rgba(255,255,255,0.8); line-height: 1.4; }
+  .legend-item strong { color: #FAFAFA; }
+
+  .notation-note {
+    background: rgba(77,182,172,0.07);
+    border: 1px solid rgba(77,182,172,0.2);
+    border-radius: 6px; padding: 14px 18px;
+    font-size: 0.8rem; color: rgba(255,255,255,0.75);
+    line-height: 1.6; margin-top: 16px;
+  }
+  .notation-note strong { color: #4DB6AC; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <h1>Meridian — BPMN Process Diagrams</h1>
+  <p>Workstream Lifecycle (Main Process) &nbsp;|&nbsp; Invite &amp; Role Promotion (Sub-Process) &nbsp;|&nbsp; Portfolio Project 3 &nbsp;|&nbsp; Hadi Mercer &nbsp;|&nbsp; February 2026</p>
+</div>
+
+<div class="meta-strip">
+  <div class="meta-item"><span>Document</span>BPMN-MERIDIAN-001</div>
+  <div class="meta-item"><span>Version</span>1.0 — Draft</div>
+  <div class="meta-item"><span>Notation</span>BPMN 2.0 (simplified)</div>
+  <div class="meta-item"><span>Diagrams</span>2 — Main Process + Sub-Process</div>
+  <div class="meta-item"><span>Methodology</span>BABOK v3 Aligned</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 1 — MAIN LIFECYCLE                                              -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-block">
+  <h2>Diagram 1 — Workstream Lifecycle (Main Process)</h2>
+  <div class="svg-scroll">
+  <svg viewBox="0 0 1540 590" width="1540" height="590" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Sequence flow arrowhead (teal) -->
+      <marker id="a1" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#4DB6AC"/>
+      </marker>
+      <!-- Message flow arrowhead (orange) -->
+      <marker id="a2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#FF7043"/>
+      </marker>
+      <!-- Loop / No path arrowhead (amber) -->
+      <marker id="a3" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#F39C12"/>
+      </marker>
+      <!-- White arrowhead (for Yes label paths) -->
+      <marker id="a4" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#4DB6AC"/>
+      </marker>
+    </defs>
+
+    <!-- ── POOL BORDER ──────────────────────────────────────────────────── -->
+    <rect x="2" y="30" width="1536" height="555" fill="none" stroke="#2E86C1" stroke-width="2" rx="5"/>
+
+    <!-- Pool title strip -->
+    <rect x="2" y="30" width="38" height="555" fill="#1B4F72" rx="5"/>
+    <text transform="rotate(-90,21,308)" x="21" y="308"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">
+      MERIDIAN — WORKSTREAM LIFECYCLE
+    </text>
+
+    <!-- ── SWIMLANE 1: OWNER (y=30, h=185) cy=123 ──────────────────────── -->
+    <rect x="40" y="30"  width="1498" height="185" fill="rgba(27,79,114,0.12)" stroke="#2E86C1" stroke-width="1"/>
+    <rect x="40" y="30"  width="56"   height="185" fill="#1B4F72"/>
+    <text transform="rotate(-90,68,123)" x="68" y="123"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">Owner</text>
+
+    <!-- ── SWIMLANE 2: CONTRIBUTOR/VIEWER (y=215, h=185) cy=308 ─────────── -->
+    <rect x="40" y="215" width="1498" height="185" fill="rgba(38,68,100,0.12)" stroke="#2E86C1" stroke-width="1"/>
+    <rect x="40" y="215" width="56"   height="185" fill="#1A3A5C"/>
+    <text transform="rotate(-90,68,308)" x="68" y="308"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">Contributor / Viewer</text>
+
+    <!-- ── SWIMLANE 3: SYSTEM (y=400, h=185) cy=493 ─────────────────────── -->
+    <rect x="40" y="400" width="1498" height="185" fill="rgba(26,58,40,0.18)" stroke="#2E86C1" stroke-width="1"/>
+    <rect x="40" y="400" width="56"   height="185" fill="#1B4F3A"/>
+    <text transform="rotate(-90,68,493)" x="68" y="493"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">System</text>
+
+    <!-- ════════════ OWNER LANE ELEMENTS ════════════ -->
+
+    <!-- START EVENT -->
+    <circle cx="128" cy="123" r="17" fill="#27AE60" stroke="#27AE60" stroke-width="2"/>
+    <text x="128" y="159" fill="#FAFAFA" font-size="8.5" font-family="Arial" text-anchor="middle">Start</text>
+
+    <!-- TASK: Sign Up / Log In -->
+    <rect x="164" y="96" width="118" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="223" y="119" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Sign Up /</text>
+    <text x="223" y="133" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Log In</text>
+
+    <!-- TASK: Create Workstream -->
+    <rect x="320" y="96" width="118" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="379" y="119" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Create</text>
+    <text x="379" y="133" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Workstream</text>
+
+    <!-- TASK: Complete Wizard -->
+    <rect x="480" y="96" width="128" height="54" fill="#1B4F72" stroke="#F39C12" stroke-width="1.5" rx="7"/>
+    <text x="544" y="115" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Complete</text>
+    <text x="544" y="129" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">9-Question</text>
+    <text x="544" y="143" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Wizard</text>
+
+    <!-- AND GATEWAY (parallel split after wizard) -->
+    <polygon points="690,99 714,123 690,147 666,123" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+    <text x="690" y="127" fill="#F39C12" font-size="14" font-family="Arial" text-anchor="middle" font-weight="bold">+</text>
+    <text x="690" y="165" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Parallel</text>
+    <text x="690" y="175" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Split</text>
+
+    <!-- TASK: Post to Updates Tab -->
+    <rect x="810" y="96" width="128" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="874" y="119" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Post to</text>
+    <text x="874" y="133" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Updates Tab</text>
+
+    <!-- XOR GATEWAY: Work Complete? -->
+    <polygon points="1060,99 1084,123 1060,147 1036,123" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+    <text x="1060" y="127" fill="#F39C12" font-size="14" font-family="Arial" text-anchor="middle">×</text>
+    <text x="1060" y="165" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Work</text>
+    <text x="1060" y="175" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Complete?</text>
+
+    <!-- TASK: Archive Workstream -->
+    <rect x="1200" y="96" width="128" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="1264" y="119" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Archive</text>
+    <text x="1264" y="133" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Workstream</text>
+
+    <!-- END EVENT -->
+    <circle cx="1420" cy="123" r="17" fill="#E74C3C" stroke="#E74C3C" stroke-width="5"/>
+    <text x="1420" y="159" fill="#FAFAFA" font-size="8.5" font-family="Arial" text-anchor="middle">End</text>
+
+    <!-- ════════════ CONTRIBUTOR LANE ELEMENTS ════════════ -->
+
+    <!-- Intermediate catch event: Joins via Invite Link -->
+    <circle cx="128" cy="308" r="17" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="2.5"/>
+    <circle cx="128" cy="308" r="12" fill="none" stroke="#4DB6AC" stroke-width="1.5"/>
+    <text x="128" y="343" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Joins via</text>
+    <text x="128" y="353" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">invite link</text>
+
+    <!-- TASK: Add Comments & Notes -->
+    <rect x="480" y="281" width="128" height="54" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="544" y="304" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Add Comments</text>
+    <text x="544" y="318" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">&amp; Notes</text>
+
+    <!-- TASK: Update Milestones / Spend / Blockers -->
+    <rect x="810" y="281" width="144" height="54" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="882" y="300" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Update Milestones,</text>
+    <text x="882" y="314" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Spend &amp; Blockers</text>
+
+    <!-- ════════════ SYSTEM LANE ELEMENTS ════════════ -->
+
+    <!-- TASK: Store Wizard Config -->
+    <rect x="480" y="466" width="128" height="54" fill="#1B4F3A" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="544" y="489" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Store Wizard</text>
+    <text x="544" y="503" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Config</text>
+
+    <!-- TASK: Initialize RAG Score -->
+    <rect x="648" y="466" width="128" height="54" fill="#1B4F3A" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="712" y="489" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Initialize</text>
+    <text x="712" y="503" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">RAG Score</text>
+
+    <!-- TASK: Recalculate RAG Score -->
+    <rect x="818" y="466" width="128" height="54" fill="#1B4F3A" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="882" y="489" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Recalculate</text>
+    <text x="882" y="503" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">RAG Score</text>
+
+    <!-- TASK: Check Staleness -->
+    <rect x="990" y="466" width="128" height="54" fill="#1B4F3A" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="1054" y="489" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Check</text>
+    <text x="1054" y="503" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Staleness</text>
+
+    <!-- ════════════ SEQUENCE FLOWS — OWNER LANE ════════════ -->
+
+    <!-- Start → Login -->
+    <line x1="145" y1="123" x2="162" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Login → Create WS -->
+    <line x1="282" y1="123" x2="318" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Create WS → Wizard -->
+    <line x1="438" y1="123" x2="478" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Wizard → Parallel Gateway -->
+    <line x1="608" y1="123" x2="664" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Parallel Gateway → Post Updates (right in owner lane) -->
+    <line x1="714" y1="123" x2="808" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Post Updates → Work Complete? gateway -->
+    <line x1="938" y1="123" x2="1034" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Work Complete? YES → Archive -->
+    <line x1="1084" y1="123" x2="1198" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+    <text x="1141" y="114" fill="#4DB6AC" font-size="8.5" font-family="Arial" text-anchor="middle">Yes</text>
+
+    <!-- Archive → End -->
+    <line x1="1328" y1="123" x2="1401" y2="123" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Work Complete? NO → loop back (goes under management tasks) -->
+    <path d="M 1060,147 V 195 H 760 V 147" fill="none" stroke="#F39C12" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#a3)"/>
+    <text x="910" y="213" fill="#F39C12" font-size="8.5" font-family="Arial" text-anchor="middle">No — continue managing</text>
+
+    <!-- ════════════ SEQUENCE FLOWS — CONTRIBUTOR LANE ════════════ -->
+
+    <!-- Invite event → Comments task -->
+    <line x1="145" y1="308" x2="478" y2="308" stroke="#4DB6AC" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#a1)"/>
+
+    <!-- Comments → Update Data -->
+    <line x1="608" y1="308" x2="808" y2="308" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Parallel Gateway DOWN → Contributor lane (invite catch event area) -->
+    <path d="M 690,147 V 290" fill="none" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- ════════════ SEQUENCE FLOWS — SYSTEM LANE ════════════ -->
+
+    <!-- Store Config → Init RAG -->
+    <line x1="608" y1="493" x2="646" y2="493" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Init RAG → Recalculate RAG -->
+    <line x1="776" y1="493" x2="816" y2="493" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Recalculate RAG → Check Staleness -->
+    <line x1="946" y1="493" x2="988" y2="493" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- ════════════ MESSAGE FLOWS (cross-lane, dashed orange) ════════════ -->
+
+    <!-- Wizard → Store Wizard Config (owner → system) -->
+    <line x1="544" y1="150" x2="544" y2="464" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#a2)"/>
+    <text x="560" y="315" fill="#FF7043" font-size="8" font-family="Arial">config</text>
+
+    <!-- Parallel gateway → Init RAG score (owner → system) -->
+    <line x1="690" y1="147" x2="712" y2="464" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#a2)"/>
+
+    <!-- Update Data → Recalculate RAG (contributor → system) -->
+    <line x1="882" y1="335" x2="882" y2="464" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#a2)"/>
+    <text x="898" y="402" fill="#FF7043" font-size="8" font-family="Arial">triggers</text>
+
+    <!-- Check Staleness → Work Complete? gateway (system → owner, upward) -->
+    <line x1="1054" y1="464" x2="1060" y2="149" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#a2)"/>
+
+  </svg>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- DIAGRAM 2 — INVITE SUB-PROCESS                                         -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-block">
+  <h2>Diagram 2 — Invite &amp; Role Promotion Sub-Process</h2>
+  <div class="svg-scroll">
+  <svg viewBox="0 0 1360 380" width="1360" height="380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="b1" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#4DB6AC"/>
+      </marker>
+      <marker id="b2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#FF7043"/>
+      </marker>
+      <marker id="b3" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0 0,9 3.5,0 7" fill="#F39C12"/>
+      </marker>
+    </defs>
+
+    <!-- POOL BORDER -->
+    <rect x="2" y="20" width="1356" height="355" fill="none" stroke="#2E86C1" stroke-width="2" rx="5"/>
+
+    <!-- Pool title strip -->
+    <rect x="2" y="20" width="38" height="355" fill="#1B4F72" rx="5"/>
+    <text transform="rotate(-90,21,198)" x="21" y="198"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">
+      INVITE &amp; ROLE PROMOTION SUB-PROCESS
+    </text>
+
+    <!-- LANE 1: Owner (y=20, h=118) cy=79 -->
+    <rect x="40" y="20"  width="1318" height="118" fill="rgba(27,79,114,0.12)" stroke="#2E86C1" stroke-width="1"/>
+    <rect x="40" y="20"  width="56"   height="118" fill="#1B4F72"/>
+    <text transform="rotate(-90,68,79)" x="68" y="79"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">Owner</text>
+
+    <!-- LANE 2: New User (y=138, h=118) cy=197 -->
+    <rect x="40" y="138" width="1318" height="118" fill="rgba(38,68,100,0.12)" stroke="#2E86C1" stroke-width="1"/>
+    <rect x="40" y="138" width="56"   height="118" fill="#1A3A5C"/>
+    <text transform="rotate(-90,68,197)" x="68" y="197"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">New User</text>
+
+    <!-- LANE 3: System (y=256, h=119) cy=316 -->
+    <rect x="40" y="256" width="1318" height="119" fill="rgba(26,58,40,0.18)" stroke="#2E86C1" stroke-width="1"/>
+    <rect x="40" y="256" width="56"   height="119" fill="#1B4F3A"/>
+    <text transform="rotate(-90,68,316)" x="68" y="316"
+          fill="white" font-size="11" font-weight="bold" font-family="Arial" text-anchor="middle">System</text>
+
+    <!-- ════════════ OWNER LANE ════════════ -->
+
+    <!-- START EVENT -->
+    <circle cx="120" cy="79" r="16" fill="#27AE60" stroke="#27AE60" stroke-width="2"/>
+    <text x="120" y="112" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Start</text>
+
+    <!-- TASK: Generate Invite Link -->
+    <rect x="154" y="52" width="128" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="218" y="75" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Generate</text>
+    <text x="218" y="89" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Invite Link</text>
+
+    <!-- TASK: Share Link -->
+    <rect x="320" y="52" width="118" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="379" y="75" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Share Link</text>
+    <text x="379" y="89" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">with User</text>
+
+    <!-- TASK: Review Team Tab -->
+    <rect x="860" y="52" width="128" height="54" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="924" y="75" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Review</text>
+    <text x="924" y="89" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Team Tab</text>
+
+    <!-- XOR GATEWAY: Promote? -->
+    <polygon points="1052,55 1076,79 1052,103 1028,79" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+    <text x="1052" y="83" fill="#F39C12" font-size="14" font-family="Arial" text-anchor="middle">×</text>
+    <text x="1052" y="123" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Promote to</text>
+    <text x="1052" y="133" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Contributor?</text>
+
+    <!-- TASK: Change Role to Contributor -->
+    <rect x="1160" y="52" width="128" height="54" fill="#1B4F72" stroke="#27AE60" stroke-width="1.5" rx="7"/>
+    <text x="1224" y="71" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Change Role:</text>
+    <text x="1224" y="85" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Viewer →</text>
+    <text x="1224" y="99" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Contributor</text>
+
+    <!-- END EVENT: Contributor path -->
+    <circle cx="1340" cy="79" r="16" fill="#E74C3C" stroke="#E74C3C" stroke-width="5"/>
+    <text x="1340" y="112" fill="#FAFAFA" font-size="7.5" font-family="Arial" text-anchor="middle">End</text>
+    <text x="1340" y="122" fill="#FAFAFA" font-size="7.5" font-family="Arial" text-anchor="middle">(Contributor)</text>
+
+    <!-- END EVENT: Viewer path (stays viewer) — below gateway -->
+    <circle cx="1052" cy="197" r="16" fill="#E74C3C" stroke="#E74C3C" stroke-width="5"/>
+    <text x="1052" y="230" fill="#FAFAFA" font-size="7.5" font-family="Arial" text-anchor="middle">End</text>
+    <text x="1052" y="240" fill="#FAFAFA" font-size="7.5" font-family="Arial" text-anchor="middle">(Viewer)</text>
+
+    <!-- ════════════ NEW USER LANE ════════════ -->
+
+    <!-- TASK: Click Invite Link -->
+    <rect x="320" y="170" width="118" height="54" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="379" y="193" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Click</text>
+    <text x="379" y="207" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Invite Link</text>
+
+    <!-- XOR GATEWAY: Has account? -->
+    <polygon points="500,173 524,197 500,221 476,197" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+    <text x="500" y="201" fill="#F39C12" font-size="14" font-family="Arial" text-anchor="middle">×</text>
+    <text x="500" y="241" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">Has</text>
+    <text x="500" y="251" fill="#FAFAFA" font-size="8" font-family="Arial" text-anchor="middle">account?</text>
+
+    <!-- TASK: Register -->
+    <rect x="590" y="156" width="110" height="44" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="645" y="178" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Register</text>
+    <text x="645" y="192" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">(new account)</text>
+
+    <!-- TASK: Log In -->
+    <rect x="590" y="210" width="110" height="44" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="645" y="232" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Log In</text>
+    <text x="645" y="246" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">(existing account)</text>
+
+    <!-- XOR JOIN gateway after register/login merge -->
+    <polygon points="756,173 780,197 756,221 732,197" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+    <text x="756" y="201" fill="#F39C12" font-size="14" font-family="Arial" text-anchor="middle">×</text>
+
+    <!-- ════════════ SYSTEM LANE ════════════ -->
+
+    <!-- TASK: Auto-assign Viewer Role -->
+    <rect x="810" y="289" width="128" height="54" fill="#1B4F3A" stroke="#4DB6AC" stroke-width="1.5" rx="7"/>
+    <text x="874" y="311" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Auto-assign</text>
+    <text x="874" y="325" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Viewer Role</text>
+
+    <!-- TASK: Update Role in DB -->
+    <rect x="1160" y="289" width="128" height="54" fill="#1B4F3A" stroke="#27AE60" stroke-width="1.5" rx="7"/>
+    <text x="1224" y="311" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">Update Role</text>
+    <text x="1224" y="325" fill="white" font-size="9.5" font-family="Arial" text-anchor="middle" font-weight="bold">in Database</text>
+
+    <!-- ════════════ SEQUENCE FLOWS ════════════ -->
+
+    <!-- Owner lane -->
+    <line x1="136" y1="79"  x2="152" y2="79"  stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+    <line x1="282" y1="79"  x2="318" y2="79"  stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+    <line x1="988" y1="79"  x2="1026" y2="79" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <!-- Promote? YES → Change Role -->
+    <line x1="1076" y1="79" x2="1158" y2="79" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+    <text x="1117" y="70" fill="#4DB6AC" font-size="8.5" font-family="Arial" text-anchor="middle">Yes</text>
+
+    <!-- Change Role → End (Contributor) -->
+    <line x1="1288" y1="79" x2="1322" y2="79" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <!-- Promote? NO → End (Viewer) — goes down -->
+    <line x1="1052" y1="103" x2="1052" y2="179" stroke="#F39C12" stroke-width="1.5" marker-end="url(#b3)"/>
+    <text x="1065" y="142" fill="#F39C12" font-size="8.5" font-family="Arial">No</text>
+
+    <!-- Share Link → Click Link (message flow, cross lane) -->
+    <line x1="379" y1="106" x2="379" y2="168" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#b2)"/>
+
+    <!-- New User lane -->
+    <line x1="438" y1="197" x2="474" y2="197" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <!-- Has account? NO → Register (up) -->
+    <path d="M 500,173 V 178 H 590" fill="none" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+    <text x="530" y="167" fill="#4DB6AC" font-size="8.5" font-family="Arial">No</text>
+
+    <!-- Has account? YES → Log In (down) -->
+    <path d="M 500,221 V 232 H 590" fill="none" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+    <text x="530" y="248" fill="#4DB6AC" font-size="8.5" font-family="Arial">Yes</text>
+
+    <!-- Register → XOR join -->
+    <path d="M 700,178 H 732" fill="none" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+    <!-- Log in → XOR join -->
+    <path d="M 700,232 H 720 V 221" fill="none" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <!-- XOR join → message down to System (Auto-assign Viewer) -->
+    <line x1="756" y1="221" x2="756" y2="287" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#b2)"/>
+
+    <!-- Also connect XOR join rightward to "Review Team Tab" in owner lane? -->
+    <!-- The auto-assign triggers Review Team Tab notification -->
+    <!-- System: Auto-assign → connects up to owner "Review Team Tab" via message -->
+
+    <!-- Auto-assign Viewer → Review Team Tab (system → owner, message flow) -->
+    <line x1="874" y1="289" x2="924" y2="106" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#b2)"/>
+    <text x="910" y="200" fill="#FF7043" font-size="8" font-family="Arial">notifies owner</text>
+
+    <!-- Auto-assign → Update Role in DB (for the promote path) -->
+    <line x1="938" y1="316" x2="1158" y2="316" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#b1)"/>
+
+    <!-- Change Role (owner) → Update Role in DB (system) message -->
+    <line x1="1224" y1="106" x2="1224" y2="287" stroke="#FF7043" stroke-width="1.5"
+          stroke-dasharray="5,3" marker-end="url(#b2)"/>
+
+  </svg>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- LEGEND & NOTATION                                                       -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-block">
+  <h2>BPMN Notation Legend</h2>
+  <div class="legend-grid">
+
+    <!-- Start event -->
+    <div class="legend-item">
+      <svg width="36" height="36"><circle cx="18" cy="18" r="14" fill="#27AE60" stroke="#27AE60" stroke-width="2"/></svg>
+      <p><strong>Start Event</strong><br>Initiates a process. Green fill.</p>
+    </div>
+
+    <!-- End event -->
+    <div class="legend-item">
+      <svg width="36" height="36"><circle cx="18" cy="18" r="14" fill="#E74C3C" stroke="#E74C3C" stroke-width="5"/></svg>
+      <p><strong>End Event</strong><br>Terminates a process. Red thick border.</p>
+    </div>
+
+    <!-- Intermediate catch event -->
+    <div class="legend-item">
+      <svg width="36" height="36">
+        <circle cx="18" cy="18" r="14" fill="#1A3A5C" stroke="#4DB6AC" stroke-width="2.5"/>
+        <circle cx="18" cy="18" r="9" fill="none" stroke="#4DB6AC" stroke-width="1.5"/>
+      </svg>
+      <p><strong>Intermediate Event</strong><br>Double-border circle. Catches a trigger mid-process (e.g., joins via link).</p>
+    </div>
+
+    <!-- Task -->
+    <div class="legend-item">
+      <svg width="56" height="36"><rect x="2" y="4" width="52" height="28" fill="#1B4F72" stroke="#4DB6AC" stroke-width="1.5" rx="5"/></svg>
+      <p><strong>Task</strong><br>An atomic unit of work performed by a lane actor. Rounded rectangle.</p>
+    </div>
+
+    <!-- XOR Gateway -->
+    <div class="legend-item">
+      <svg width="36" height="36">
+        <polygon points="18,2 34,18 18,34 2,18" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+        <text x="18" y="22" fill="#F39C12" font-size="14" font-family="Arial" text-anchor="middle">×</text>
+      </svg>
+      <p><strong>XOR Gateway</strong><br>Exclusive decision — exactly one path taken. Marked with ×.</p>
+    </div>
+
+    <!-- AND Gateway -->
+    <div class="legend-item">
+      <svg width="36" height="36">
+        <polygon points="18,2 34,18 18,34 2,18" fill="#0E1117" stroke="#F39C12" stroke-width="2"/>
+        <text x="18" y="23" fill="#F39C12" font-size="16" font-family="Arial" text-anchor="middle" font-weight="bold">+</text>
+      </svg>
+      <p><strong>AND Gateway (Parallel)</strong><br>All outgoing paths execute simultaneously. Marked with +.</p>
+    </div>
+
+    <!-- Sequence flow -->
+    <div class="legend-item">
+      <svg width="56" height="20">
+        <line x1="4" y1="10" x2="48" y2="10" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#a1)"/>
+        <defs>
+          <marker id="leg1" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+            <polygon points="0 0,9 3.5,0 7" fill="#4DB6AC"/>
+          </marker>
+        </defs>
+        <line x1="4" y1="10" x2="48" y2="10" stroke="#4DB6AC" stroke-width="1.5" marker-end="url(#leg1)"/>
+      </svg>
+      <p><strong>Sequence Flow</strong><br>Normal process flow within a lane or pool. Teal solid arrow.</p>
+    </div>
+
+    <!-- Message flow -->
+    <div class="legend-item">
+      <svg width="56" height="20">
+        <defs>
+          <marker id="leg2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+            <polygon points="0 0,9 3.5,0 7" fill="#FF7043"/>
+          </marker>
+        </defs>
+        <line x1="4" y1="10" x2="48" y2="10" stroke="#FF7043" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#leg2)"/>
+      </svg>
+      <p><strong>Message Flow</strong><br>Cross-lane communication (e.g., System triggered by Owner action). Orange dashed arrow.</p>
+    </div>
+
+    <!-- Loop path -->
+    <div class="legend-item">
+      <svg width="56" height="20">
+        <defs>
+          <marker id="leg3" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+            <polygon points="0 0,9 3.5,0 7" fill="#F39C12"/>
+          </marker>
+        </defs>
+        <line x1="4" y1="10" x2="48" y2="10" stroke="#F39C12" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#leg3)"/>
+      </svg>
+      <p><strong>Loop / Conditional Path</strong><br>Feedback loop or "No" branch from a gateway. Amber dashed arrow.</p>
+    </div>
+
+    <!-- Swimlane -->
+    <div class="legend-item">
+      <svg width="56" height="36">
+        <rect x="2" y="2" width="52" height="32" fill="rgba(27,79,114,0.3)" stroke="#2E86C1" stroke-width="1.5"/>
+        <rect x="2" y="2" width="14" height="32" fill="#1B4F72"/>
+      </svg>
+      <p><strong>Swimlane</strong><br>Defines responsibility boundary. Each lane is a distinct actor or system component.</p>
+    </div>
+
+  </div>
+
+  <div class="notation-note">
+    <strong>BPMN Compliance Note:</strong> These diagrams use simplified BPMN 2.0 notation appropriate for a portfolio BA artifact.
+    Formal BPMN 2.0 would require additional notation elements for event sub-processes, boundary events, and formal message correlation.
+    The core constructs — sequence flows, message flows, gateways, events, tasks, and swimlanes — are all correctly applied.
+    The diagrams are designed for stakeholder communication and developer handoff, consistent with BABOK v3 requirements elicitation artifacts.
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — UML Class Diagram</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0E1117;
+    font-family: Arial, sans-serif;
+    color: #FAFAFA;
+    padding: 32px;
+  }
+
+  .page-header {
+    background: linear-gradient(90deg, #1B4F72 0%, #2E86C1 100%);
+    border-radius: 0.6rem;
+    padding: 1.2rem 1.8rem;
+    margin-bottom: 2rem;
+  }
+  .page-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.2rem;
+  }
+  .page-header p {
+    color: rgba(255,255,255,0.82);
+    font-size: 0.88rem;
+  }
+
+  .meta-strip {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    background: #262730;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 0.8rem;
+  }
+  .meta-item span { color: #4DB6AC; font-weight: 700; display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+
+  .section {
+    background: #262730;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .section h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #4DB6AC;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .diagram-wrap {
+    background: #1a1d24;
+    border-radius: 8px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+
+  .mermaid {
+    min-width: 900px;
+  }
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 0;
+  }
+  .legend-item {
+    background: #1a1d24;
+    border-radius: 6px;
+    padding: 12px 16px;
+    border-left: 3px solid #4DB6AC;
+  }
+  .legend-item.core    { border-color: #4DB6AC; }
+  .legend-item.collab  { border-color: #FF7043; }
+  .legend-item.auth    { border-color: #AB47BC; }
+  .legend-item.scoring { border-color: #26A69A; }
+
+  .legend-item h4 { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; }
+  .legend-item.core h4    { color: #4DB6AC; }
+  .legend-item.collab h4  { color: #FF7043; }
+  .legend-item.auth h4    { color: #AB47BC; }
+  .legend-item.scoring h4 { color: #26A69A; }
+
+  .legend-item p { font-size: 0.78rem; color: rgba(255,255,255,0.7); line-height: 1.5; }
+
+  .rel-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .rel-table th {
+    background: #1B4F72;
+    color: #fff;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.78rem;
+  }
+  .rel-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .rel-table tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+  .rel-table code { background: #1a1d24; padding: 1px 6px; border-radius: 3px; font-size: 0.78rem; color: #4DB6AC; }
+
+  .note {
+    background: rgba(77,182,172,0.08);
+    border: 1px solid rgba(77,182,172,0.25);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.8);
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+  .note strong { color: #4DB6AC; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Meridian — UML Class Diagram</h1>
+  <p>Data Model &nbsp;|&nbsp; Portfolio Project 3 &nbsp;|&nbsp; FRD-MERIDIAN-001 &nbsp;|&nbsp; Hadi Mercer &nbsp;|&nbsp; February 2026</p>
+</div>
+
+<div class="meta-strip">
+  <div class="meta-item"><span>Document</span>UML-MERIDIAN-001</div>
+  <div class="meta-item"><span>Version</span>1.0 — Draft</div>
+  <div class="meta-item"><span>Entities</span>12 Tables</div>
+  <div class="meta-item"><span>Methodology</span>BABOK v3 Aligned</div>
+  <div class="meta-item"><span>DB Target</span>PostgreSQL via Supabase</div>
+</div>
+
+<!-- ── DIAGRAM ──────────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>Class Diagram — Full Data Model</h2>
+  <div class="diagram-wrap">
+    <div class="mermaid">
+classDiagram
+  direction TB
+
+  class users {
+    +UUID id PK
+    +TEXT email UNIQUE
+    +TEXT display_name
+    +TIMESTAMPTZ created_at
+  }
+
+  class workstreams {
+    +UUID id PK
+    +TEXT name
+    +TEXT description
+    +DATE start_date
+    +DATE end_date
+    +NUMERIC planned_budget nullable
+    +UUID owner_id FK
+    +TEXT phase
+    +BOOL is_archived
+    +TIMESTAMPTZ archived_at nullable
+    +TIMESTAMPTZ created_at
+    +TIMESTAMPTZ updated_at
+  }
+
+  class wizard_config {
+    +UUID id PK
+    +UUID workstream_id FK UNIQUE
+    +TEXT q1_work_type
+    +TEXT q2_deadline_nature
+    +TEXT q3_deliverable_type
+    +TEXT q4_budget_exposure
+    +TEXT q5_dependency_level
+    +TEXT q6_risk_level
+    +TEXT q7_phase
+    +TEXT q8_update_frequency
+    +TEXT q9_audience
+    +UUID configured_by FK
+    +TIMESTAMPTZ configured_at
+  }
+
+  class workstream_members {
+    +UUID id PK
+    +UUID workstream_id FK
+    +UUID user_id FK
+    +TEXT role
+    +BOOL is_former_member
+    +TIMESTAMPTZ joined_at
+  }
+
+  class invite_links {
+    +UUID id PK
+    +UUID workstream_id FK
+    +TEXT token UNIQUE
+    +UUID created_by FK
+    +TIMESTAMPTZ created_at
+    +BOOL is_active
+  }
+
+  class milestones {
+    +UUID id PK
+    +UUID workstream_id FK
+    +TEXT name
+    +DATE due_date
+    +TEXT status
+    +UUID created_by FK
+    +TIMESTAMPTZ created_at
+    +TIMESTAMPTZ updated_at
+  }
+
+  class spend_entries {
+    +UUID id PK
+    +UUID workstream_id FK
+    +NUMERIC amount
+    +DATE entry_date
+    +TEXT category
+    +TEXT description nullable
+    +UUID created_by FK
+    +TIMESTAMPTZ created_at
+  }
+
+  class blockers {
+    +UUID id PK
+    +UUID workstream_id FK
+    +TEXT description
+    +DATE date_raised
+    +TEXT status
+    +TEXT resolution_note nullable
+    +TIMESTAMPTZ resolved_at nullable
+    +UUID created_by FK
+    +TIMESTAMPTZ created_at
+  }
+
+  class updates {
+    +UUID id PK
+    +UUID workstream_id FK
+    +TEXT post_type
+    +TEXT title
+    +TEXT body
+    +UUID author_id FK
+    +TIMESTAMPTZ created_at
+    +TIMESTAMPTZ edited_at nullable
+    +BOOL is_locked
+  }
+
+  class comments {
+    +UUID id PK
+    +TEXT entity_type
+    +UUID entity_id
+    +TEXT body
+    +UUID author_id FK
+    +BOOL is_former_member
+    +TIMESTAMPTZ created_at
+  }
+
+  class notes {
+    +UUID id PK
+    +TEXT entity_type
+    +UUID entity_id
+    +TEXT body
+    +UUID author_id FK
+    +TIMESTAMPTZ created_at
+    +TIMESTAMPTZ updated_at
+  }
+
+  class rag_scores {
+    +UUID id PK
+    +UUID workstream_id FK UNIQUE
+    +NUMERIC schedule_score
+    +NUMERIC budget_score
+    +NUMERIC blocker_score
+    +NUMERIC composite_score
+    +TEXT rag_status
+    +BOOL is_stale
+    +TIMESTAMPTZ calculated_at
+  }
+
+  %% Core ownership
+  users "1" --> "0..*" workstreams : owns
+  users "1" --> "0..*" workstream_members : has membership
+  workstreams "1" --> "0..*" workstream_members : has members
+
+  %% Wizard — one-to-one
+  workstreams "1" --> "1" wizard_config : configured by
+  users "1" --> "0..*" wizard_config : configures
+
+  %% Invites
+  workstreams "1" --> "0..*" invite_links : generates
+  users "1" --> "0..*" invite_links : creates
+
+  %% Content tabs
+  workstreams "1" --> "0..*" milestones : tracks
+  workstreams "1" --> "0..*" spend_entries : tracks
+  workstreams "1" --> "0..*" blockers : tracks
+  workstreams "1" --> "0..*" updates : receives
+
+  %% Collaboration
+  workstreams "1" --> "0..*" comments : has thread
+  milestones "1" --> "0..*" comments : has thread
+  milestones "1" --> "0..1" notes : has note
+  blockers "1" --> "0..*" comments : has thread
+  blockers "1" --> "0..1" notes : has note
+  spend_entries "1" --> "0..*" comments : has thread
+  spend_entries "1" --> "0..1" notes : has note
+
+  %% Scoring — live calculated
+  workstreams "1" --> "1" rag_scores : scored by
+
+  %% Authorship
+  users "1" --> "0..*" milestones : creates
+  users "1" --> "0..*" spend_entries : logs
+  users "1" --> "0..*" blockers : raises
+  users "1" --> "0..*" updates : posts
+  users "1" --> "0..*" comments : authors
+  users "1" --> "0..*" notes : authors
+    </div>
+  </div>
+</div>
+
+<!-- ── ENTITY LEGEND ────────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>Entity Groups</h2>
+  <div class="legend">
+    <div class="legend-item auth">
+      <h4>Identity & Access</h4>
+      <p><strong>users, workstream_members, invite_links</strong> — Authentication, role assignment, and the open-link invite flow. workstream_members is the RLS anchor: every data operation checks this table for the user's role.</p>
+    </div>
+    <div class="legend-item core">
+      <h4>Workstream Core</h4>
+      <p><strong>workstreams, wizard_config</strong> — The atomic unit of tracking and its scoring profile. wizard_config is 1:1 with workstreams and stores all 9 wizard answers that tune the RAG engine.</p>
+    </div>
+    <div class="legend-item scoring">
+      <h4>RAG Scoring</h4>
+      <p><strong>rag_scores, milestones, spend_entries, blockers</strong> — The three health dimension inputs. rag_scores is recalculated on every write to these tables. Never manually set.</p>
+    </div>
+    <div class="legend-item collab">
+      <h4>Collaboration Layer</h4>
+      <p><strong>comments, notes, updates</strong> — Contextual conversation per tab item (comments), persistent annotations (notes), and structured announcements (updates). Polymorphic via entity_type + entity_id.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── KEY RELATIONSHIPS ─────────────────────────────────────────────────── -->
+<div class="section">
+  <h2>Key Design Decisions</h2>
+  <table class="rel-table">
+    <thead>
+      <tr>
+        <th>Decision</th>
+        <th>Implementation</th>
+        <th>Rationale</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Role-based access control</td>
+        <td><code>workstream_members.role</code> — owner / contributor / viewer</td>
+        <td>Every Supabase RLS policy references this column. Single source of truth for permissions across all 12 tables.</td>
+      </tr>
+      <tr>
+        <td>Wizard stored, not derived</td>
+        <td><code>wizard_config</code> table — 9 columns, one per question</td>
+        <td>Wizard answers must persist independently of the workstream so they can be re-run without losing history. Separate table keeps workstreams clean.</td>
+      </tr>
+      <tr>
+        <td>Polymorphic comments & notes</td>
+        <td><code>entity_type TEXT + entity_id UUID</code> on both tables</td>
+        <td>Avoids 6+ separate comment tables. entity_type values: workstream, milestone, blocker, spend_entry. Validated at application layer.</td>
+      </tr>
+      <tr>
+        <td>RAG score as live table</td>
+        <td><code>rag_scores</code> — 1:1 with workstreams, recalculated on trigger</td>
+        <td>Storing the calculated score avoids re-computing on every dashboard load. Recalculated on any write to milestones, spend_entries, or blockers.</td>
+      </tr>
+      <tr>
+        <td>Former member attribution</td>
+        <td><code>is_former_member BOOL</code> on workstream_members, comments</td>
+        <td>FR-31 requires historical comments to be retained but attributed as 'Former member' after removal. Flag set on removal, not deletion of records.</td>
+      </tr>
+      <tr>
+        <td>Invite token model</td>
+        <td><code>invite_links.token TEXT UNIQUE + is_active BOOL</code></td>
+        <td>Open invite link pattern. Owner can deactivate a link without deleting it. Token looked up on signup to auto-assign Viewer role via workstream_members.</td>
+      </tr>
+      <tr>
+        <td>Staleness flag on rag_scores</td>
+        <td><code>rag_scores.is_stale BOOL</code> — set by scheduled check vs Q8</td>
+        <td>Staleness is a separate signal from health score (FR-10). Displayed alongside RAG on the portfolio card without overriding the calculated colour.</td>
+      </tr>
+      <tr>
+        <td>Updates post locking</td>
+        <td><code>updates.is_locked BOOL + edited_at</code></td>
+        <td>FR-27: posts editable within 15 minutes, then locked. Application sets is_locked = true after 15-minute window. Preserves integrity of the decision/risk log.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>On the comments polymorphic pattern:</strong> The <code>entity_type + entity_id</code> approach is deliberately chosen over foreign-key-per-entity-type for v1 simplicity. The tradeoff is that referential integrity is enforced at the application layer rather than the database layer. This is an acceptable constraint for a portfolio build — a Phase 2 refactor could introduce separate comment tables per entity if integrity guarantees become critical.
+  </div>
+</div>
+
+<!-- ── MILESTONE STATUS VALUES ─────────────────────────────────────────── -->
+<div class="section">
+  <h2>Enumerated Field Values</h2>
+  <table class="rel-table">
+    <thead>
+      <tr><th>Table</th><th>Column</th><th>Valid Values</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>workstream_members</td><td><code>role</code></td><td>owner, contributor, viewer</td><td>Enforced via CHECK constraint + RLS</td></tr>
+      <tr><td>milestones</td><td><code>status</code></td><td>not_started, in_progress, complete</td><td>Drives Schedule Health calculation</td></tr>
+      <tr><td>blockers</td><td><code>status</code></td><td>open, resolved</td><td>Age tracked from date_raised while open</td></tr>
+      <tr><td>updates</td><td><code>post_type</code></td><td>status_update, decision_made, risk_raised, milestone_reached, general_announcement</td><td>status_update restricted to Owner role</td></tr>
+      <tr><td>rag_scores</td><td><code>rag_status</code></td><td>green, amber, red</td><td>Derived from composite_score thresholds: ≥70 green, 40–69 amber, &lt;40 red</td></tr>
+      <tr><td>comments / notes</td><td><code>entity_type</code></td><td>workstream, milestone, blocker, spend_entry</td><td>Polymorphic anchor — validated at app layer</td></tr>
+      <tr><td>wizard_config</td><td><code>q2_deadline_nature</code></td><td>hard_contractual, business_driven, self_imposed, ongoing</td><td>Most impactful single modifier on schedule weighting</td></tr>
+      <tr><td>wizard_config</td><td><code>q4_budget_exposure</code></td><td>client_billable, approved_internal, informal_none</td><td>informal_none suppresses budget dimension to 5%</td></tr>
+      <tr><td>wizard_config</td><td><code>q5_dependency_level</code></td><td>self_contained, depends_1_2, depends_multiple, blocked_external</td><td>blocked_external halves blocker age thresholds</td></tr>
+      <tr><td>wizard_config</td><td><code>q6_risk_level</code></td><td>low, medium, high, critical</td><td>high/critical compress the Amber-to-Red band</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background: '#1a1d24',
+      primaryColor: '#1B4F72',
+      primaryTextColor: '#FAFAFA',
+      primaryBorderColor: '#4DB6AC',
+      lineColor: '#4DB6AC',
+      secondaryColor: '#262730',
+      tertiaryColor: '#0E1117',
+      edgeLabelBackground: '#1a1d24',
+      clusterBkg: '#262730',
+      titleColor: '#FAFAFA',
+      attributeBackgroundColorEven: '#1a1d24',
+      attributeBackgroundColorOdd: '#262730',
+      fontSize: '13px',
+    },
+    classDiagram: {
+      diagramPadding: 20,
+    }
+  });
+</script>
+
+</body>
+</html>
