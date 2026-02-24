@@ -112,4 +112,5 @@ with create_account_tab:
                 st.success(
                     "Account created. Please check your email to confirm your address before signing in."
                 )
-
+            except Exception:
+                st.error("Could not create account. Please try again.")
