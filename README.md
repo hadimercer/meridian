@@ -190,6 +190,12 @@ The 9-question wizard adjusts thresholds and weights per workstream. Full logic 
 
 ---
 
+## Screenshots
+
+*Coming soon — dashboard and workstream detail screenshots will be added after deployment.*
+
+---
+
 ## Portfolio Context
 
 This project is part of a 6-project BA career transition portfolio demonstrating end-to-end business analysis capability — from requirements elicitation and documentation through to technical implementation and deployment.

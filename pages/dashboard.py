@@ -29,6 +29,30 @@ BG_CARD  = "#262730"
 
 require_auth()
 
+# ─── Sidebar navigation ───────────────────────────────────────────────────────
+
+with st.sidebar:
+    st.page_link("pages/dashboard.py", label="📊 Portfolio")
+    st.page_link("pages/create_workstream.py", label="➕ New Workstream")
+    st.divider()
+    _sidebar_user = get_current_user()
+    if _sidebar_user:
+        _sidebar_uid = _sidebar_user.get("id")
+        try:
+            _dn_df = query_df(
+                "SELECT display_name FROM users WHERE id = %s", (_sidebar_uid,)
+            )
+            _display_name = (
+                _dn_df.iloc[0]["display_name"] if not _dn_df.empty else ""
+            )
+        except Exception:
+            _display_name = ""
+        if _display_name:
+            st.markdown(f"**{_display_name}**")
+        st.caption(_sidebar_user.get("email", ""))
+    if st.button("Sign Out", key="sidebar_signout_dash"):
+        logout()
+
 # ─── Pending invite token ─────────────────────────────────────────────────────
 
 if st.session_state.get("pending_invite_token"):
@@ -95,7 +119,11 @@ _SQL = """
         w.updated_at DESC
 """
 
-df_all = query_df(_SQL, (get_current_user_id(),))
+try:
+    df_all = query_df(_SQL, (get_current_user_id(),))
+except Exception:
+    st.error("Unable to connect to database. Please try again.")
+    st.stop()
 
 # New workstreams not yet scored arrive with NULL rag_status → default to green.
 if not df_all.empty and "rag_status" in df_all.columns:

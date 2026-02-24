@@ -6,7 +6,14 @@ Workstream detail view — tabs: Overview, Milestones, Budget, Blockers, Updates
 import streamlit as st
 import pandas as pd
 from datetime import date, datetime, timezone
-from pipeline.auth import require_auth, get_current_user_id, get_user_role, is_contributor_or_above
+from pipeline.auth import (
+    require_auth,
+    get_current_user,
+    get_current_user_id,
+    get_user_role,
+    is_contributor_or_above,
+    logout,
+)
 from pipeline.db import query_df, run_query
 from pipeline.invite import generate_invite_link, get_active_invite_url
 from pipeline.scoring import calculate_rag
@@ -19,6 +26,30 @@ def rag_badge(status: str) -> str:
 
 require_auth()
 
+# ─── Sidebar navigation ───────────────────────────────────────────────────────
+
+with st.sidebar:
+    st.page_link("pages/dashboard.py", label="📊 Portfolio")
+    st.page_link("pages/create_workstream.py", label="➕ New Workstream")
+    st.divider()
+    _sidebar_user = get_current_user()
+    if _sidebar_user:
+        _sidebar_uid = _sidebar_user.get("id")
+        try:
+            _dn_df = query_df(
+                "SELECT display_name FROM users WHERE id = %s", (_sidebar_uid,)
+            )
+            _display_name = (
+                _dn_df.iloc[0]["display_name"] if not _dn_df.empty else ""
+            )
+        except Exception:
+            _display_name = ""
+        if _display_name:
+            st.markdown(f"**{_display_name}**")
+        st.caption(_sidebar_user.get("email", ""))
+    if st.button("Sign Out", key="sidebar_signout_ws"):
+        logout()
+
 workstream_id = st.query_params.get("id", None)
 if workstream_id is None:
     st.error("No workstream specified.")
@@ -30,21 +61,25 @@ if not workstream_id:
     st.error("No workstream specified.")
     st.stop()
 
-df = query_df(
-    """
-    SELECT w.*,
-           wz.q1_work_type, wz.q2_deadline_nature, wz.q3_deliverable_type,
-           wz.q4_budget_exposure, wz.q5_dependency_level, wz.q6_risk_level,
-           wz.q7_phase, wz.q8_update_frequency, wz.q9_audience,
-           r.rag_status, r.composite_score, r.schedule_score,
-           r.budget_score, r.blocker_score, r.is_stale
-    FROM workstreams w
-    LEFT JOIN wizard_config wz ON wz.workstream_id = w.id
-    LEFT JOIN rag_scores r ON r.workstream_id = w.id
-    WHERE w.id = %s
-    """,
-    (workstream_id,),
-)
+try:
+    df = query_df(
+        """
+        SELECT w.*,
+               wz.q1_work_type, wz.q2_deadline_nature, wz.q3_deliverable_type,
+               wz.q4_budget_exposure, wz.q5_dependency_level, wz.q6_risk_level,
+               wz.q7_phase, wz.q8_update_frequency, wz.q9_audience,
+               r.rag_status, r.composite_score, r.schedule_score,
+               r.budget_score, r.blocker_score, r.is_stale
+        FROM workstreams w
+        LEFT JOIN wizard_config wz ON wz.workstream_id = w.id
+        LEFT JOIN rag_scores r ON r.workstream_id = w.id
+        WHERE w.id = %s
+        """,
+        (workstream_id,),
+    )
+except Exception:
+    st.error("Unable to connect to database. Please try again.")
+    st.stop()
 
 if df.empty:
     st.error("Workstream not found.")
