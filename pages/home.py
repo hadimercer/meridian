@@ -339,7 +339,7 @@ st.markdown("###  Recent Activity")
 if activity_df.empty:
     st.info("No recent activity yet.")
 else:
-    for _, row in activity_df.iterrows():
+    for act_idx, (_, row) in enumerate(activity_df.iterrows()):
         author = str(row.get("author") or "Unknown")
         author_initial = author.strip()[0].upper() if author.strip() else "?"
         author_html = html.escape(author)
@@ -385,7 +385,7 @@ else:
         _, btn_col = st.columns([5, 1])
         with btn_col:
             ws_id_act = str(row.get("workstream_id") or "")
-            if st.button("Open →", key=f"act_{ws_id_act}", use_container_width=True):
+            if st.button("Open →", key=f"act_{act_idx}_{ws_id_act}", use_container_width=True):
                 st.session_state["open_workstream_id"] = ws_id_act
                 st.switch_page("pages/workstream.py")
 
