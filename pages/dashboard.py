@@ -1,11 +1,11 @@
 """
 pages/dashboard.py
-Portfolio Dashboard — card grid view of all active workstreams with RAG status.
+Portfolio dashboard redesign.
 """
 
+import html
 import streamlit as st
 import pandas as pd
-from datetime import date
 
 from pipeline.auth import (
     require_auth,
@@ -18,24 +18,13 @@ from pipeline.db import query_df
 
 st.set_page_config(layout="wide")
 
-# ─── Colour constants ─────────────────────────────────────────────────────────
-
-C_GREEN  = "#27AE60"
-C_AMBER  = "#F39C12"
-C_RED    = "#E74C3C"
-C_TEAL   = "#4DB6AC"
-BG_DARK  = "#0E1117"
-BG_CARD  = "#262730"
-
-# ─── Auth guard ───────────────────────────────────────────────────────────────
 
 require_auth()
 
-# ─── Sidebar navigation ───────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.page_link("pages/dashboard.py", label="📊 Portfolio")
-    st.page_link("pages/create_workstream.py", label="➕ New Workstream")
+    st.page_link("pages/dashboard.py", label="\U0001F4CA Portfolio")
+    st.page_link("pages/create_workstream.py", label="\u2795 New Workstream")
     st.divider()
     _sidebar_user = get_current_user()
     if _sidebar_user:
@@ -55,10 +44,10 @@ with st.sidebar:
     if st.button("Sign Out", key="sidebar_signout_dash"):
         logout()
 
-# ─── Pending invite token ─────────────────────────────────────────────────────
 
 if st.session_state.get("pending_invite_token"):
     from pipeline.invite import accept_invite
+
     token = st.session_state.pop("pending_invite_token")
     success = accept_invite(token, get_current_user_id())
     if success:
@@ -66,32 +55,8 @@ if st.session_state.get("pending_invite_token"):
     else:
         st.error("Invite link is no longer valid.")
 
-# ─── Page header ─────────────────────────────────────────────────────────────
 
-# ─── Top action row ───────────────────────────────────────────────────────────
-
-col_title, col_new = st.columns([6, 2])
-with col_title:
-    st.markdown(
-        """
-        <div style="margin-bottom:8px;">
-          <h1 style="margin:0;font-size:2rem;font-weight:700;">My Portfolio</h1>
-          <p style="margin:4px 0 0;color:#888;font-size:0.95rem;">
-            Workstream health at a glance
-          </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-with col_new:
-    st.markdown("<div style='height:0.4rem;'></div>", unsafe_allow_html=True)
-    if st.button("+ New Workstream", use_container_width=True):
-        st.switch_page("pages/create_workstream.py")
-
-st.divider()
-
-# ─── Data loading ─────────────────────────────────────────────────────────────
-
+# Main workstream query (kept)
 _SQL = """
     SELECT  w.id,
             w.name,
@@ -119,269 +84,456 @@ _SQL = """
         w.updated_at DESC
 """
 
+current_user_id = get_current_user_id()
+
 try:
-    df_all = query_df(_SQL, (get_current_user_id(),))
+    df_all = query_df(_SQL, (current_user_id,))
 except Exception as e:
     st.error(f"Database error: {e}")
     st.stop()
 
-# New workstreams not yet scored arrive with NULL rag_status → default to green.
 if not df_all.empty and "rag_status" in df_all.columns:
     df_all["rag_status"] = df_all["rag_status"].fillna("green")
 
-# ─── Early exit when user has no workstreams at all ──────────────────────────
+if "is_stale" not in df_all.columns:
+    df_all["is_stale"] = False
+
+# Supplementary fields used by redesigned cards and sorting
+if not df_all.empty:
+    _ws_ids_for_meta = df_all["id"].dropna().tolist()
+    if _ws_ids_for_meta:
+        try:
+            _meta_df = query_df(
+                """
+                SELECT id, description, updated_at
+                FROM workstreams
+                WHERE id = ANY(%s)
+                """,
+                (_ws_ids_for_meta,),
+            )
+        except Exception:
+            _meta_df = pd.DataFrame(columns=["id", "description", "updated_at"])
+        if not _meta_df.empty:
+            df_all = df_all.merge(_meta_df, on="id", how="left")
+
+if "description" not in df_all.columns:
+    df_all["description"] = ""
+if "updated_at" not in df_all.columns:
+    df_all["updated_at"] = pd.NaT
+
+
+# SECTION 1 — PAGE HEADER
+col_header_left, col_header_right = st.columns([6, 1])
+with col_header_left:
+    st.markdown(
+        """
+        <div style="margin-bottom:0.5rem;">
+            <h1 style="margin:0; font-size:2rem; font-weight:700;">My Portfolio</h1>
+            <p style="margin:0.25rem 0 0 0; color:rgba(255,255,255,0.66); font-size:0.95rem;">
+                Workstream health at a glance
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with col_header_right:
+    st.markdown("<div style='height:0.35rem;'></div>", unsafe_allow_html=True)
+    if st.button("+ New Workstream", key="new_workstream_header", use_container_width=True):
+        st.session_state["open_workstream_id"] = None
+        st.switch_page("pages/create_workstream.py")
+
 
 if df_all.empty:
     st.info("You don't have any active workstreams. Create one to get started.")
     st.stop()
 
-# ─── Summary strip ────────────────────────────────────────────────────────────
 
-total   = len(df_all)
-n_green = int((df_all["rag_status"] == "green").sum())
-n_amber = int((df_all["rag_status"] == "amber").sum())
-n_red   = int((df_all["rag_status"] == "red").sum())
-n_stale = int(df_all["is_stale"].fillna(False).sum())
+# SECTION 2 — PORTFOLIO PULSE BAR
+workstream_ids = df_all["id"].dropna().tolist()
 
-m1, m2, m3, m4, m5 = st.columns(5)
-m1.metric("Total Active", total)
-m2.metric("🟢 Green",     n_green)
-m3.metric("🟡 Amber",     n_amber)
-m4.metric("🔴 Red",       n_red)
-m5.metric("⚠️ Stale",     n_stale)
+if workstream_ids:
+    try:
+        overdue_df = query_df(
+            """
+            SELECT COUNT(*) as n
+            FROM milestones
+            WHERE workstream_id = ANY(%s)
+              AND status != 'complete'
+              AND due_date < CURRENT_DATE
+            """,
+            (workstream_ids,),
+        )
+    except Exception:
+        overdue_df = pd.DataFrame([{"n": 0}])
 
-st.divider()
+    try:
+        blockers_df = query_df(
+            """
+            SELECT COUNT(*) as n
+            FROM blockers
+            WHERE workstream_id = ANY(%s)
+              AND status = 'open'
+            """,
+            (workstream_ids,),
+        )
+    except Exception:
+        blockers_df = pd.DataFrame([{"n": 0}])
+else:
+    overdue_df = pd.DataFrame([{"n": 0}])
+    blockers_df = pd.DataFrame([{"n": 0}])
 
-# ─── Filter row ───────────────────────────────────────────────────────────────
 
-_PHASES = ["discovery", "planning", "in_flight", "review_closing"]
+def pulse_tile(label, value, bg_color, text_color="#FFFFFF"):
+    return f"""
+    <div style="background:{bg_color}; border-radius:0.6rem; padding:0.9rem 1rem;
+                text-align:center; height:100%;">
+        <div style="font-size:1.8rem; font-weight:700; color:{text_color};">{value}</div>
+        <div style="font-size:0.78rem; color:rgba(255,255,255,0.82); margin-top:0.2rem;">{label}</div>
+    </div>
+    """
 
-fc1, fc2, fc3, _ = st.columns([2, 2, 2, 4])
 
-with fc1:
-    rag_filter = st.multiselect(
-        "Status",
-        options=["green", "amber", "red"],
-        default=["green", "amber", "red"],
-    )
-with fc2:
-    role_filter = st.selectbox("Showing", ["All", "Mine", "Invited"])
-with fc3:
-    phase_filter = st.multiselect(
+total_active = len(df_all)
+red_count = int((df_all["rag_status"] == "red").sum())
+amber_count = int((df_all["rag_status"] == "amber").sum())
+green_count = int((df_all["rag_status"] == "green").sum())
+overdue_milestones = int(overdue_df.iloc[0]["n"]) if not overdue_df.empty else 0
+open_blockers = int(blockers_df.iloc[0]["n"]) if not blockers_df.empty else 0
+
+pulse_cols = st.columns(6)
+pulse_cols[0].markdown(pulse_tile("Total Active", total_active, "#1B4F72"), unsafe_allow_html=True)
+pulse_cols[1].markdown(pulse_tile("Red", red_count, "#E74C3C"), unsafe_allow_html=True)
+pulse_cols[2].markdown(pulse_tile("Amber", amber_count, "#F39C12"), unsafe_allow_html=True)
+pulse_cols[3].markdown(pulse_tile("Green", green_count, "#27AE60"), unsafe_allow_html=True)
+pulse_cols[4].markdown(pulse_tile("Overdue Milestones", overdue_milestones, "#E67E22"), unsafe_allow_html=True)
+pulse_cols[5].markdown(pulse_tile("Open Blockers", open_blockers, "#8E44AD"), unsafe_allow_html=True)
+
+st.markdown("<div style='height:0.85rem;'></div>", unsafe_allow_html=True)
+
+
+# SECTION 3 — FILTER BAR
+st.markdown(
+    """
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+                border-radius:0.6rem; padding:0.8rem 1rem; margin-bottom:1rem;">
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <style>
+    div[data-testid="stHorizontalBlock"] button {
+        border-radius: 999px !important;
+        font-size: 0.82rem !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.session_state.setdefault("filter_status", "all")
+st.session_state.setdefault("filter_phase", "All Phases")
+st.session_state.setdefault("filter_role", "All Roles")
+st.session_state.setdefault("filter_sort", " Red \u2192 Green")
+
+filter_col_1, filter_col_2, filter_col_3, filter_col_4 = st.columns([3, 2, 2, 2])
+
+with filter_col_1:
+    st.caption("Status")
+    status_cols = st.columns(5)
+    status_options = [
+        ("all", "All"),
+        ("red", "\U0001F534 Red"),
+        ("amber", "\U0001F7E0 Amber"),
+        ("green", "\U0001F7E2 Green"),
+        ("stale", "\u26A0\uFE0F Stale"),
+    ]
+    for idx, (status_key, status_label) in enumerate(status_options):
+        with status_cols[idx]:
+            active = st.session_state.get("filter_status", "all") == status_key
+            if st.button(
+                status_label,
+                key=f"filter_status_{status_key}",
+                use_container_width=True,
+                type="primary" if active else "secondary",
+            ):
+                st.session_state["filter_status"] = status_key
+                st.rerun()
+
+with filter_col_2:
+    st.selectbox(
         "Phase",
-        options=_PHASES,
-        default=_PHASES,
+        ["All Phases", "Discovery", "Planning", "In Flight", "Review & Closing"],
+        key="filter_phase",
     )
 
-# Apply filters
-df = df_all.copy()
+with filter_col_3:
+    st.selectbox(
+        "Role",
+        ["All Roles", "Owner", "Contributor", "Viewer"],
+        key="filter_role",
+    )
 
-if rag_filter:
-    df = df[df["rag_status"].isin(rag_filter)]
+with filter_col_4:
+    st.selectbox(
+        "Sort",
+        [
+            " Red \u2192 Green",
+            " Green \u2192 Red",
+            "\u23F0 Deadline (soonest)",
+            " Recently Updated",
+        ],
+        key="filter_sort",
+    )
 
-if role_filter == "Mine":
-    df = df[df["role"] == "owner"]
-elif role_filter == "Invited":
-    df = df[df["role"] != "owner"]
 
-if phase_filter:
-    df = df[df["phase"].isin(phase_filter)]
+# SECTION 4 — APPLY FILTERS TO DATAFRAME
+df_filtered = df_all.copy()
 
-if df.empty:
-    st.info("No workstreams match the current filters.")
-    st.stop()
+if "end_date" in df_filtered.columns:
+    df_filtered["end_date"] = pd.to_datetime(df_filtered["end_date"], errors="coerce")
+if "updated_at" in df_filtered.columns:
+    df_filtered["updated_at"] = pd.to_datetime(df_filtered["updated_at"], errors="coerce", utc=True)
 
-# ─── Helper functions ─────────────────────────────────────────────────────────
+# Status filter
+if st.session_state.get("filter_status", "all") != "all":
+    status_val = st.session_state["filter_status"]
+    if status_val == "stale":
+        df_filtered = df_filtered[df_filtered["is_stale"] == True]
+    else:
+        df_filtered = df_filtered[df_filtered["rag_status"] == status_val]
 
-def _rag_colour(status: str) -> str:
-    """Return the hex colour for a RAG status string."""
+# Phase filter
+phase_map = {
+    "Discovery": "discovery",
+    "Planning": "planning",
+    "In Flight": "in_flight",
+    "Review & Closing": "review_closing",
+}
+if st.session_state.get("filter_phase", "All Phases") != "All Phases":
+    df_filtered = df_filtered[df_filtered["phase"] == phase_map[st.session_state["filter_phase"]]]
+
+# Role filter
+if st.session_state.get("filter_role", "All Roles") != "All Roles":
+    df_filtered = df_filtered[df_filtered["role"] == st.session_state["filter_role"].lower()]
+
+# Sort
+sort_val = st.session_state.get("filter_sort", " Red \u2192 Green")
+rag_order = {"red": 0, "amber": 1, "green": 2}
+if sort_val == " Red \u2192 Green":
+    df_filtered["_sort"] = df_filtered["rag_status"].map(rag_order)
+    df_filtered = df_filtered.sort_values("_sort")
+elif sort_val == " Green \u2192 Red":
+    df_filtered["_sort"] = df_filtered["rag_status"].map(rag_order)
+    df_filtered = df_filtered.sort_values("_sort", ascending=False)
+elif sort_val == "\u23F0 Deadline (soonest)":
+    df_filtered = df_filtered.sort_values("end_date")
+elif sort_val == " Recently Updated":
+    df_filtered = df_filtered.sort_values("updated_at", ascending=False)
+
+if "_sort" in df_filtered.columns:
+    df_filtered = df_filtered.drop(columns=["_sort"])
+
+
+# SECTION 5 — WORKSTREAM CARDS
+@st.cache_data(show_spinner=False)
+def get_owner_display_name(owner_id: str | None) -> str:
+    if not owner_id:
+        return "Unknown"
+    try:
+        owner_df = query_df(
+            "SELECT display_name FROM public.users WHERE id = %s",
+            (owner_id,),
+        )
+        if owner_df.empty:
+            return "Unknown"
+        return str(owner_df.iloc[0].get("display_name") or "Unknown")
+    except Exception:
+        return "Unknown"
+
+
+@st.cache_data(show_spinner=False)
+def get_open_blockers_count(workstream_id: str) -> int:
+    try:
+        blockers_df_local = query_df(
+            "SELECT COUNT(*) as n FROM blockers WHERE workstream_id = %s AND status = 'open'",
+            (workstream_id,),
+        )
+        if blockers_df_local.empty:
+            return 0
+        return int(blockers_df_local.iloc[0].get("n") or 0)
+    except Exception:
+        return 0
+
+
+def score_bar(label, score, color):
+    score_num = pd.to_numeric(score, errors="coerce")
+    score_int = int(round(float(score_num))) if pd.notna(score_num) else 0
+    score_int = max(0, min(100, score_int))
+    bar_color = "#27AE60" if score_int >= 70 else "#F39C12" if score_int >= 40 else "#E74C3C"
+    return f"""
+    <div style="margin-bottom:0.3rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:rgba(255,255,255,0.7); margin-bottom:0.2rem;">
+            <span>{label}</span><span style="color:{bar_color}; font-weight:600;">{score_int}</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.1); border-radius:999px; height:6px;">
+            <div style="background:{bar_color}; width:{score_int}%; height:6px; border-radius:999px;"></div>
+        </div>
+    </div>
+    """
+
+
+def to_int_score(value) -> int:
+    value_num = pd.to_numeric(value, errors="coerce")
+    if pd.isna(value_num):
+        return 0
+    return int(round(float(value_num)))
+
+
+def phase_label(phase_value: str | None) -> str:
     return {
-        "green": C_GREEN,
-        "amber": C_AMBER,
-        "red":   C_RED,
-    }.get(status, C_GREEN)
-
-
-def _score_colour(score: float | None) -> str:
-    """Return the hex colour for a 0-100 sub-score."""
-    if score is None:
-        return "#888888"
-    if score >= 70:
-        return C_GREEN
-    if score >= 40:
-        return C_AMBER
-    return C_RED
-
-
-def _phase_label(phase: str | None) -> str:
-    """Return a human-readable phase label."""
-    return {
-        "discovery":      "Discovery",
-        "planning":       "Planning",
-        "in_flight":      "In Flight",
+        "in_flight": "In Flight",
         "review_closing": "Review & Closing",
-    }.get(phase or "", phase or "—")
+        "discovery": "Discovery",
+        "planning": "Planning",
+    }.get(str(phase_value or ""), str(phase_value or "-"))
 
 
-def _deadline_html(end_date) -> str:
-    """Return deadline HTML with urgency colouring."""
-    if end_date is None:
-        return "<span style='color:#888;font-size:0.8rem;'>No deadline set</span>"
-    try:
-        if isinstance(end_date, str):
-            end_date = date.fromisoformat(end_date)
-        days = (end_date - date.today()).days
-    except Exception:
-        return "<span style='color:#888;font-size:0.8rem;'>—</span>"
-
-    if days < 0:
-        return (
-            f"<span style='color:{C_RED};font-size:0.8rem;font-weight:600;'>"
-            f"⚠️ {abs(days)}d overdue</span>"
-        )
-    if days <= 7:
-        return (
-            f"<span style='color:{C_AMBER};font-size:0.8rem;font-weight:600;'>"
-            f"🟡 {days}d remaining</span>"
-        )
-    return f"<span style='color:#888;font-size:0.8rem;'>{days}d remaining</span>"
+def days_to_deadline(end_date_value) -> int:
+    dt = pd.to_datetime(end_date_value, errors="coerce")
+    if pd.isna(dt):
+        return 0
+    if dt.tzinfo is None:
+        dt = dt.tz_localize("UTC")
+    else:
+        dt = dt.tz_convert("UTC")
+    return int((dt.normalize() - pd.Timestamp.now(tz="UTC").normalize()).days)
 
 
-def _score_bar_html(label: str, score: float | None) -> str:
-    """Return HTML for a labelled sub-score bar."""
-    pct    = int(score or 0)
-    colour = _score_colour(score)
-    return (
-        f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px;'>"
-        f"  <span style='color:#888;font-size:0.75rem;width:58px;flex-shrink:0;'>{label}</span>"
-        f"  <div style='flex:1;background:#333;border-radius:4px;height:6px;'>"
-        f"    <div style='width:{pct}%;background:{colour};border-radius:4px;height:6px;'></div>"
-        f"  </div>"
-        f"  <span style='color:{colour};font-size:0.75rem;width:28px;text-align:right;'>{pct}</span>"
-        f"</div>"
+def days_since_updated(updated_value) -> int:
+    dt = pd.to_datetime(updated_value, errors="coerce", utc=True)
+    if pd.isna(dt):
+        return 0
+    return max(0, int((pd.Timestamp.now(tz="UTC") - dt).days))
+
+
+st.markdown(
+    """
+    <style>
+    .portfolio-card-list div[data-testid="stButton"] > button {
+        position: relative;
+        margin-top: -4.5rem;
+        height: 4.5rem;
+        background: transparent !important;
+        border: none !important;
+        color: transparent !important;
+        cursor: pointer;
+        width: 100%;
+    }
+    .portfolio-card-list div[data-testid="stButton"] > button:hover {
+        background: rgba(255,255,255,0.03) !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+if df_filtered.empty:
+    st.markdown(
+        """
+        <div style="text-align:center; padding:3rem; color:rgba(255,255,255,0.4);">
+            <div style="font-size:2.5rem; margin-bottom:0.5rem;"></div>
+            <div style="font-size:1rem;">No workstreams match the current filters.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
+else:
+    st.markdown('<div class="portfolio-card-list">', unsafe_allow_html=True)
 
+    for _, ws in df_filtered.iterrows():
+        ws_id = ws.get("id")
+        ws_name = str(ws.get("name") or "Untitled Workstream")
+        ws_desc = str(ws.get("description") or "")
+        if len(ws_desc) > 120:
+            ws_desc = ws_desc[:120].rstrip() + "..."
 
-# Cache owner display names to avoid one query per card.
-@st.cache_data(ttl=120, show_spinner=False)
-def _fetch_owner_names(owner_ids: tuple) -> dict:
-    """
-    Return a {user_id: display_name} dict for the given owner UUIDs.
+        ws_phase = str(ws.get("phase") or "")
+        ws_phase_label = phase_label(ws_phase)
+        ws_role = str(ws.get("role") or "viewer")
+        ws_rag = str(ws.get("rag_status") or "").lower()
 
-    Accepts a tuple (not list) so it is hashable for st.cache_data.
-    Falls back to an empty dict on any query error.
-    """
-    if not owner_ids:
-        return {}
-    placeholders = ",".join(["%s"] * len(owner_ids))
-    sql = f"SELECT id, display_name FROM users WHERE id IN ({placeholders})"
-    try:
-        df_owners = query_df(sql, owner_ids)
-        if df_owners.empty:
-            return {}
-        return dict(zip(df_owners["id"], df_owners["display_name"]))
-    except Exception:
-        return {}
+        ws_composite = to_int_score(ws.get("composite_score"))
+        ws_schedule = to_int_score(ws.get("schedule_score"))
+        ws_budget = to_int_score(ws.get("budget_score"))
+        ws_blocker_score = to_int_score(ws.get("blocker_score"))
 
+        ws_days = days_to_deadline(ws.get("end_date"))
+        ws_updated = days_since_updated(ws.get("updated_at"))
+        ws_owner = get_owner_display_name(str(ws.get("owner_id") or ""))
+        ws_open_blockers = get_open_blockers_count(str(ws_id))
 
-# Fetch owner names for cards where the viewer is not the owner.
-_non_owner_rows = df[df["role"] != "owner"]
-_owner_ids = tuple(_non_owner_rows["owner_id"].dropna().unique().tolist())
-_owner_names = _fetch_owner_names(_owner_ids)
+        rag_colors = {"green": "#27AE60", "amber": "#F39C12", "red": "#E74C3C"}
+        rag_color = rag_colors.get(ws_rag, "#888")
+        rag_labels = {"green": " GREEN", "amber": " AMBER", "red": " RED"}
+        rag_label = rag_labels.get(ws_rag, "UNKNOWN")
 
-# ─── Card grid ────────────────────────────────────────────────────────────────
+        days_color = "#E74C3C" if ws_days < 14 else "#F39C12" if ws_days < 30 else "#FAFAFA"
+        days_label = f"{ws_days}d left" if ws_days >= 0 else f"{abs(ws_days)}d overdue"
 
-COLS = 3
-rows = [df.iloc[i : i + COLS] for i in range(0, len(df), COLS)]
+        role_colors = {"owner": "#4DB6AC", "contributor": "#5DADE2", "viewer": "#AAB7B8"}
+        role_color = role_colors.get(ws_role, "#888")
 
-for row_df in rows:
-    grid_cols = st.columns(COLS)
+        ws_name_html = html.escape(ws_name)
+        ws_desc_html = html.escape(ws_desc)
+        ws_owner_html = html.escape(ws_owner)
+        ws_phase_label_html = html.escape(ws_phase_label)
 
-    for col, (_, ws) in zip(grid_cols, row_df.iterrows()):
-        ws_id     = ws["id"]
-        ws_name   = ws["name"] or "Untitled"
-        role      = ws.get("role") or "viewer"
-        phase     = ws.get("phase")
-        rag       = ws.get("rag_status", "green")
-        rag_col   = _rag_colour(rag)
-        is_stale  = bool(ws.get("is_stale", False))
-        owner_id  = ws.get("owner_id")
+        card_html = f"""
+<div style="
+    background: rgba(255,255,255,0.04);
+    border-radius: 0.75rem;
+    border-left: 5px solid {rag_color};
+    border: 1px solid rgba(255,255,255,0.08);
+    border-left: 5px solid {rag_color};
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 0.8rem;
+    cursor: pointer;
+">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+        <div style="flex:1;">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">
+                <span style="background:{rag_color}; color:#fff; padding:0.2rem 0.7rem; border-radius:999px; font-size:0.78rem; font-weight:700;">{rag_label}</span>
+                <span style="background:{role_color}22; color:{role_color}; border:1px solid {role_color}55; padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:600;">{ws_role.capitalize()}</span>
+                <span style="background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem;">{ws_phase_label_html}</span>
+            </div>
+            <div style="font-size:1.2rem; font-weight:700; color:#FAFAFA; margin-bottom:0.3rem;">{ws_name_html}</div>
+            <div style="font-size:0.82rem; color:rgba(255,255,255,0.55); margin-bottom:0.6rem;">{ws_desc_html}</div>
+        </div>
+        <div style="text-align:right; min-width:90px; margin-left:1.5rem;">
+            <div style="font-size:2rem; font-weight:700; color:{days_color}; line-height:1;">{abs(ws_days)}</div>
+            <div style="font-size:0.72rem; color:rgba(255,255,255,0.6);">{'days left' if ws_days >= 0 else 'days overdue'}</div>
+        </div>
+    </div>
+    <div style="margin-bottom:0.7rem;">
+        {score_bar('Schedule', ws_schedule, rag_color)}
+        {score_bar('Budget', ws_budget, rag_color)}
+        {score_bar('Blockers', ws_blocker_score, rag_color)}
+    </div>
+    <div style="display:flex; gap:1.4rem; font-size:0.78rem; color:rgba(255,255,255,0.55); border-top:1px solid rgba(255,255,255,0.07); padding-top:0.6rem;">
+        <span> {ws_owner_html}</span>
+        <span> Updated {ws_updated}d ago</span>
+        <span> {ws_open_blockers} open blocker{'s' if ws_open_blockers != 1 else ''}</span>
+    </div>
+</div>
+"""
+        st.markdown(card_html, unsafe_allow_html=True)
 
-        sched_score   = ws.get("schedule_score")
-        budget_score  = ws.get("budget_score")
-        blocker_score = ws.get("blocker_score")
+        if st.button(ws_name, key=f"card_{ws_id}", use_container_width=True):
+            st.session_state["open_workstream_id"] = ws_id
+            st.switch_page("pages/workstream.py")
 
-        # ── Role pill ────────────────────────────────────────────────────────
-        role_colour = C_TEAL if role == "owner" else "#555"
-        role_label  = role.capitalize()
-        role_pill = (
-            f"<span style='background:{role_colour};color:#fff;"
-            f"border-radius:4px;padding:1px 7px;font-size:0.72rem;'>"
-            f"{role_label}</span>"
-        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        # ── Stale badge ──────────────────────────────────────────────────────
-        stale_badge = (
-            "<span style='background:#7B5800;color:#F39C12;"
-            "border-radius:4px;padding:1px 7px;font-size:0.72rem;"
-            "margin-left:6px;'>⚠️ Stale</span>"
-            if is_stale else ""
-        )
-
-        # ── Phase badge ──────────────────────────────────────────────────────
-        phase_html = (
-            f"<span style='color:#aaa;font-size:0.78rem;'>"
-            f"{_phase_label(phase)}</span>"
-        )
-
-        # ── Owner line (only shown when the viewer is not the owner) ─────────
-        if role != "owner" and owner_id:
-            owner_display = _owner_names.get(owner_id, "—")
-            owner_html = (
-                f"<div style='color:#888;font-size:0.75rem;margin-top:4px;'>"
-                f"Owner: {owner_display}</div>"
-            )
-        else:
-            owner_html = ""
-
-        # ── Sub-score bars ───────────────────────────────────────────────────
-        bars_html = (
-            _score_bar_html("Schedule", sched_score)
-            + _score_bar_html("Budget",   budget_score)
-            + _score_bar_html("Blockers", blocker_score)
-        )
-
-        # ── Card shell (everything except the name button) ───────────────────
-        with col:
-            st.markdown(
-                f"""
-                <div style="
-                    background:{BG_CARD};
-                    border:1px solid rgba(255,255,255,0.08);
-                    border-left:4px solid {rag_col};
-                    border-radius:8px;
-                    padding:16px;
-                    margin-bottom:12px;
-                ">
-                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                    <span style="color:{rag_col};font-size:1.1rem;">●</span>
-                    <span style="color:{rag_col};font-size:0.78rem;font-weight:600;letter-spacing:0.05em;">
-                        {rag.upper()}
-                    </span>
-                    {stale_badge}
-                  </div>
-                  <div style="margin-bottom:6px;">
-                    {role_pill}&nbsp;&nbsp;{phase_html}
-                  </div>
-                  {_deadline_html(ws.get("end_date"))}
-                  <div style="margin-top:12px;">{bars_html}</div>
-                  {owner_html}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            # Name as a Streamlit button (handles click events natively).
-            if st.button(ws_name, key=f"ws_{ws_id}", use_container_width=True):
-                st.session_state["open_workstream_id"] = ws_id
-                st.switch_page("pages/workstream.py")
