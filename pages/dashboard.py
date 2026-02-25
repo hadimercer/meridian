@@ -121,8 +121,8 @@ _SQL = """
 
 try:
     df_all = query_df(_SQL, (get_current_user_id(),))
-except Exception:
-    st.error("Unable to connect to database. Please try again.")
+except Exception as e:
+    st.error(f"Database error: {e}")
     st.stop()
 
 # New workstreams not yet scored arrive with NULL rag_status → default to green.
