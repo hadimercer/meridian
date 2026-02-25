@@ -18,6 +18,8 @@ from pipeline.db import query_df, run_query
 from pipeline.invite import generate_invite_link, get_active_invite_url
 from pipeline.scoring import calculate_rag
 
+st.set_page_config(layout="wide")
+
 
 def rag_badge(status: str) -> str:
     """Return the uppercase RAG status label."""
@@ -1259,54 +1261,6 @@ with tab_updates:
     current_user_id = get_current_user_id()
     can_post = user_role in ("owner", "contributor")
 
-    if can_post:
-        st.markdown("### New Update")
-
-        if user_role == "owner":
-            available_post_types = list(POST_TYPE_CONFIG.keys())
-        else:
-            available_post_types = [
-                post_type for post_type in POST_TYPE_CONFIG.keys() if post_type != "status_update"
-            ]
-
-        selected_post_type = st.selectbox(
-            "Post type",
-            options=available_post_types,
-            format_func=lambda key: POST_TYPE_CONFIG[key]["label"],
-            key="updates_post_type",
-        )
-        update_title = st.text_input("Title", key="updates_title")
-        update_body = st.text_area("Body", height=150, key="updates_body")
-
-        if st.button("Post Update", key="post_update_button"):
-            if not (update_title or "").strip():
-                st.warning("Title is required.")
-            elif not (update_body or "").strip():
-                st.warning("Body is required.")
-            elif current_user_id is None:
-                st.error("You must be signed in to post updates.")
-            else:
-                try:
-                    run_query(
-                        """
-                        INSERT INTO updates (workstream_id, post_type, title, body, author_id, is_locked)
-                        VALUES (%s, %s, %s, %s, %s, FALSE)
-                        """,
-                        (
-                            workstream_id,
-                            selected_post_type,
-                            update_title.strip(),
-                            update_body.strip(),
-                            current_user_id,
-                        ),
-                    )
-                    query_df.clear()
-                    st.rerun()
-                except Exception as error:
-                    st.error(str(error))
-
-        st.divider()
-
     posts_df = query_df(
         """
         SELECT p.id, p.post_type, p.title, p.body, p.created_at,
@@ -1319,10 +1273,17 @@ with tab_updates:
         (workstream_id,),
     )
 
+    visible_updates_key = f"updates_visible_count_{workstream_id}"
+    if visible_updates_key not in st.session_state:
+        st.session_state[visible_updates_key] = 10
+
+    total_updates = len(posts_df)
+    visible_updates = min(int(st.session_state[visible_updates_key]), total_updates)
+
     if posts_df.empty:
         st.info("No updates yet.")
     else:
-        for _, post in posts_df.iterrows():
+        for _, post in posts_df.head(visible_updates).iterrows():
             post_id = str(post["id"])
             post_type = str(post.get("post_type") or "")
             cfg = POST_TYPE_CONFIG.get(
@@ -1391,6 +1352,58 @@ with tab_updates:
                                 st.error(str(error))
 
             st.divider()
+
+        if total_updates > visible_updates:
+            if st.button("Load older updates", key=f"load_older_updates_{workstream_id}"):
+                st.session_state[visible_updates_key] = min(total_updates, visible_updates + 10)
+                st.rerun()
+
+    if can_post:
+        st.divider()
+        st.subheader("Post a New Update")
+
+        if user_role == "owner":
+            available_post_types = list(POST_TYPE_CONFIG.keys())
+        else:
+            available_post_types = [
+                post_type for post_type in POST_TYPE_CONFIG.keys() if post_type != "status_update"
+            ]
+
+        selected_post_type = st.selectbox(
+            "Post type",
+            options=available_post_types,
+            format_func=lambda key: POST_TYPE_CONFIG[key]["label"],
+            key="updates_post_type",
+        )
+        update_title = st.text_input("Title", key="updates_title")
+        update_body = st.text_area("Body", height=150, key="updates_body")
+
+        if st.button("Post Update", key="post_update_button"):
+            if not (update_title or "").strip():
+                st.warning("Title is required.")
+            elif not (update_body or "").strip():
+                st.warning("Body is required.")
+            elif current_user_id is None:
+                st.error("You must be signed in to post updates.")
+            else:
+                try:
+                    run_query(
+                        """
+                        INSERT INTO updates (workstream_id, post_type, title, body, author_id, is_locked)
+                        VALUES (%s, %s, %s, %s, %s, FALSE)
+                        """,
+                        (
+                            workstream_id,
+                            selected_post_type,
+                            update_title.strip(),
+                            update_body.strip(),
+                            current_user_id,
+                        ),
+                    )
+                    query_df.clear()
+                    st.rerun()
+                except Exception as error:
+                    st.error(str(error))
 
 with tab_team:
     members_df = query_df(

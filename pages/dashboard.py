@@ -16,6 +16,8 @@ from pipeline.auth import (
 )
 from pipeline.db import query_df
 
+st.set_page_config(layout="wide")
+
 # ─── Colour constants ─────────────────────────────────────────────────────────
 
 C_GREEN  = "#27AE60"
@@ -66,27 +68,25 @@ if st.session_state.get("pending_invite_token"):
 
 # ─── Page header ─────────────────────────────────────────────────────────────
 
-st.markdown(
-    """
-    <div style="margin-bottom:8px;">
-      <h1 style="margin:0;font-size:2rem;font-weight:700;">My Portfolio</h1>
-      <p style="margin:4px 0 0;color:#888;font-size:0.95rem;">
-        Workstream health at a glance
-      </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 # ─── Top action row ───────────────────────────────────────────────────────────
 
-col_new, col_signout = st.columns([1, 1])
+col_title, col_new = st.columns([6, 2])
+with col_title:
+    st.markdown(
+        """
+        <div style="margin-bottom:8px;">
+          <h1 style="margin:0;font-size:2rem;font-weight:700;">My Portfolio</h1>
+          <p style="margin:4px 0 0;color:#888;font-size:0.95rem;">
+            Workstream health at a glance
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 with col_new:
+    st.markdown("<div style='height:0.4rem;'></div>", unsafe_allow_html=True)
     if st.button("+ New Workstream", use_container_width=True):
         st.switch_page("pages/create_workstream.py")
-with col_signout:
-    if st.button("Sign Out", use_container_width=True):
-        logout()
 
 st.divider()
 

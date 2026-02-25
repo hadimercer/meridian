@@ -6,7 +6,7 @@ Login and registration page.
 import streamlit as st
 from pipeline.db import get_supabase_client
 
-st.set_page_config(page_title="Meridian � Sign In", page_icon="", layout="centered")
+st.set_page_config(page_title="Meridian � Sign In", page_icon="", layout="wide")
 
 if "user" not in st.session_state:
     st.session_state["user"] = None
@@ -114,3 +114,4 @@ with create_account_tab:
                 )
             except Exception:
                 st.error("Could not create account. Please try again.")
+

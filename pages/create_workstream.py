@@ -10,6 +10,8 @@ from pipeline.auth import require_auth, get_current_user, get_current_user_id, l
 from pipeline.db import get_pg_connection, query_df
 from pipeline.scoring import calculate_rag
 
+st.set_page_config(layout="wide")
+
 
 require_auth()
 
