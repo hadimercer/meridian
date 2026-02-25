@@ -53,6 +53,11 @@ with st.sidebar:
         logout()
 
 workstream_id = st.query_params.get("id", None) or st.session_state.pop("open_workstream_id", None)
+if workstream_id:
+    st.session_state["current_workstream_id"] = workstream_id
+else:
+    workstream_id = st.session_state.get("current_workstream_id", None)
+
 if workstream_id is None:
     st.error("No workstream specified.")
     st.stop()
