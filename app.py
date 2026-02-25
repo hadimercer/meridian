@@ -22,4 +22,4 @@ if "user" not in st.session_state:
 if not is_authenticated():
     st.switch_page("pages/login.py")
 else:
-    st.switch_page("pages/dashboard.py")
+    st.switch_page("pages/home.py")

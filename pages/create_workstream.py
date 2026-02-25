@@ -18,8 +18,9 @@ require_auth()
 # ─── Sidebar navigation ───────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.page_link("pages/dashboard.py", label="📊 Portfolio")
-    st.page_link("pages/create_workstream.py", label="➕ New Workstream")
+    st.page_link("pages/home.py", label="Home")
+    st.page_link("pages/dashboard.py", label="Portfolio")
+    st.page_link("pages/create_workstream.py", label="New Workstream")
     st.divider()
     _sidebar_user = get_current_user()
     if _sidebar_user:
