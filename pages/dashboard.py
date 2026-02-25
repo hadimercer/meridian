@@ -383,5 +383,5 @@ for row_df in rows:
 
             # Name as a Streamlit button (handles click events natively).
             if st.button(ws_name, key=f"ws_{ws_id}", use_container_width=True):
-                st.query_params["id"] = ws_id
+                st.session_state["open_workstream_id"] = ws_id
                 st.switch_page("pages/workstream.py")
