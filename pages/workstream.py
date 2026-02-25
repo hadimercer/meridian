@@ -5,6 +5,7 @@ Workstream detail view — tabs: Overview, Milestones, Budget, Blockers, Updates
 
 import streamlit as st
 import pandas as pd
+import html
 from datetime import date, datetime, timezone
 from pipeline.auth import (
     require_auth,
@@ -24,6 +25,22 @@ st.set_page_config(layout="wide")
 def rag_badge(status: str) -> str:
     """Return the uppercase RAG status label."""
     return str(status or "unknown").upper()
+
+
+@st.cache_data(show_spinner=False)
+def _get_owner_display_name(_workstream_id: str, owner_id: str | None) -> str:
+    if not owner_id:
+        return "Unknown"
+    try:
+        owner_df = query_df(
+            "SELECT display_name FROM public.users WHERE id = %s",
+            (owner_id,),
+        )
+        if owner_df.empty:
+            return "Unknown"
+        return str(owner_df.iloc[0].get("display_name") or "Unknown")
+    except Exception:
+        return "Unknown"
 
 
 require_auth()
@@ -119,30 +136,30 @@ else:
     else:
         deadline_text = f"{abs(days_to_deadline)} days overdue"
 
-col_back, col_title, col_rag, col_deadline = st.columns([1.2, 4.0, 1.3, 1.8])
+owner_display_name = _get_owner_display_name(str(workstream_id), ws.get("owner_id"))
 
-with col_back:
+col_left, col_right = st.columns([3, 2])
+
+with col_left:
     if st.button("← Portfolio"):
         st.switch_page("pages/dashboard.py")
-
-with col_title:
     st.markdown(f"# {ws.get('name', 'Untitled Workstream')}")
-
-with col_rag:
+with col_right:
     st.markdown(
         f"""
-        <div style="margin-top: 0.7rem;">
-            <span style="background:{rag_colour}; color:#FFFFFF; padding:0.35rem 0.75rem; border-radius:999px; font-weight:600; font-size:0.85rem;">
-                {rag_badge(status)}
-            </span>
+        <div style="display:flex; flex-direction:column; justify-content:center; align-items:flex-end; height:100%; min-height:6rem; text-align:right; gap:0.4rem;">
+            <div style="font-weight:600;">
+                Status:
+                <span style="background:{rag_colour}; color:#FFFFFF; padding:0.25rem 0.65rem; border-radius:999px; font-weight:700; font-size:0.78rem;">
+                    {rag_badge(status)}
+                </span>
+            </div>
+            <div style="font-weight:600;">
+                Owner: <span style="font-weight:400;">{html.escape(owner_display_name)}</span>
+            </div>
+            <div style="font-weight:600;">{html.escape(deadline_text)}</div>
         </div>
         """,
-        unsafe_allow_html=True,
-    )
-
-with col_deadline:
-    st.markdown(
-        f"""<div style="margin-top: 0.8rem; font-weight:600;">{deadline_text}</div>""",
         unsafe_allow_html=True,
     )
 
@@ -152,10 +169,32 @@ if pd.notna(is_stale) and bool(is_stale):
 
 # is_contributor_or_above is imported for upcoming Phase 4 tab actions/permissions.
 
+st.markdown("""
+<style>
+button[data-baseweb="tab"] {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1.2rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 tab_overview, tab_milestones, tab_budget, tab_blockers, tab_updates, tab_team = st.tabs([
     " Overview", " Milestones", " Budget",
     " Blockers", " Updates", " Team"
 ])
+
+st.markdown("""
+<style>
+div[data-testid="stTabsContent"] {
+    background: rgba(255,255,255,0.03);
+    border-radius: 0 0 0.6rem 0.6rem;
+    padding: 1rem 1.2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-top: none;
+}
+</style>
+""", unsafe_allow_html=True)
 
 with tab_overview:
     # PHASE 4 PROMPT 8 — Overview tab content
