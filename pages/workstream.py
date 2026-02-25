@@ -172,7 +172,7 @@ if pd.notna(is_stale) and bool(is_stale):
 st.markdown("""
 <style>
 button[data-baseweb="tab"] {
-    font-size: 1rem !important;
+    font-size: 1.15rem !important;
     font-weight: 600 !important;
     padding: 0.6rem 1.2rem !important;
 }
@@ -186,7 +186,7 @@ tab_overview, tab_milestones, tab_budget, tab_blockers, tab_updates, tab_team = 
 
 st.markdown("""
 <style>
-div[data-testid="stTabsContent"] {
+div[data-testid="stTabsContent"] > div {
     background: rgba(255,255,255,0.03);
     border-radius: 0 0 0.6rem 0.6rem;
     padding: 1rem 1.2rem;
