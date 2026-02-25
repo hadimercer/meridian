@@ -4,14 +4,14 @@ Portfolio command center landing page.
 """
 
 import html
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 from pipeline.auth import (
-    require_auth,
     get_current_user,
     get_current_user_id,
     logout,
+    require_auth,
 )
 from pipeline.db import query_df
 
@@ -32,9 +32,7 @@ with st.sidebar:
             _dn_df = query_df(
                 "SELECT display_name FROM users WHERE id = %s", (_sidebar_uid,)
             )
-            _display_name = (
-                _dn_df.iloc[0]["display_name"] if not _dn_df.empty else ""
-            )
+            _display_name = _dn_df.iloc[0]["display_name"] if not _dn_df.empty else ""
         except Exception:
             _display_name = ""
         if _display_name:
@@ -87,29 +85,31 @@ st.markdown(
 workstream_ids = [str(i) for i in df_all["id"].dropna().tolist()]
 
 if workstream_ids:
+    ws_placeholders = ",".join(["%s"] * len(workstream_ids))
+    ws_params = tuple(workstream_ids)
     try:
         overdue_df = query_df(
-            """
+            f"""
             SELECT COUNT(*) as n
             FROM milestones
-            WHERE workstream_id = ANY(%s)
+            WHERE workstream_id::text IN ({ws_placeholders})
               AND status != 'complete'
               AND due_date < CURRENT_DATE
             """,
-            (workstream_ids,),
+            ws_params,
         )
     except Exception:
         overdue_df = pd.DataFrame([{"n": 0}])
 
     try:
         blockers_df = query_df(
-            """
+            f"""
             SELECT COUNT(*) as n
             FROM blockers
-            WHERE workstream_id = ANY(%s)
+            WHERE workstream_id::text IN ({ws_placeholders})
               AND status = 'open'
             """,
-            (workstream_ids,),
+            ws_params,
         )
     except Exception:
         blockers_df = pd.DataFrame([{"n": 0}])
@@ -140,10 +140,33 @@ pulse_cols[0].markdown(pulse_tile("Total Active", total_active, "#1B4F72"), unsa
 pulse_cols[1].markdown(pulse_tile("Red", red_count, "#E74C3C"), unsafe_allow_html=True)
 pulse_cols[2].markdown(pulse_tile("Amber", amber_count, "#F39C12"), unsafe_allow_html=True)
 pulse_cols[3].markdown(pulse_tile("Green", green_count, "#27AE60"), unsafe_allow_html=True)
-pulse_cols[4].markdown(pulse_tile("Overdue Milestones", overdue_milestones, "#E67E22"), unsafe_allow_html=True)
+pulse_cols[4].markdown(
+    pulse_tile("Overdue Milestones", overdue_milestones, "#E67E22"), unsafe_allow_html=True
+)
 pulse_cols[5].markdown(pulse_tile("Open Blockers", open_blockers, "#8E44AD"), unsafe_allow_html=True)
 
 st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
+
+st.markdown(
+    """
+<style>
+div[data-testid="stButton"] > button[kind="tertiary"] {
+    margin-top: -5.6rem;
+    height: 5.6rem;
+    width: 100%;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: transparent !important;
+    border-radius: 0.6rem !important;
+}
+div[data-testid="stButton"] > button[kind="tertiary"]:hover {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 rag_colors = {"green": "#27AE60", "amber": "#F39C12", "red": "#E74C3C"}
 
@@ -172,9 +195,9 @@ with col_left:
     except Exception:
         overdue_items_df = pd.DataFrame()
 
-    st.markdown("### \u23F0 Overdue Milestones")
+    st.markdown("### Overdue Milestones")
     if overdue_items_df.empty:
-        st.success("No overdue milestones \u2014 you're on track! \u2705")
+        st.success("No overdue milestones - you're on track!")
     else:
         for idx, row in overdue_items_df.iterrows():
             ws_id = row.get("workstream_id")
@@ -200,7 +223,8 @@ with col_left:
 
             st.markdown(
                 f"""
-                <div style="background:{row_bg}; border-radius:0.6rem; border:1px solid rgba(255,255,255,0.08); padding:0.8rem 0.95rem; margin-bottom:0.45rem;">
+                <div style="background:{row_bg}; border-radius:0.6rem; border:1px solid rgba(255,255,255,0.08);
+                            padding:0.8rem 0.95rem; margin-bottom:0.45rem; min-height:5.6rem;">
                     <div style="display:flex; justify-content:space-between; gap:0.8rem;">
                         <div>
                             <div style="font-size:0.85rem; color:{ws_color}; font-weight:700;">{ws_name}</div>
@@ -216,7 +240,12 @@ with col_left:
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("Open \u2192", key=f"open_overdue_{idx}_{ws_id}"):
+            if st.button(
+                f"Open overdue {idx}",
+                key=f"open_overdue_{idx}_{ws_id}",
+                use_container_width=True,
+                type="tertiary",
+            ):
                 st.session_state["open_workstream_id"] = ws_id
                 st.switch_page("pages/workstream.py")
 
@@ -243,9 +272,9 @@ with col_right:
     except Exception:
         blocker_items_df = pd.DataFrame()
 
-    st.markdown("###  Oldest Open Blockers")
+    st.markdown("### Oldest Open Blockers")
     if blocker_items_df.empty:
-        st.info("No open blockers \u2705")
+        st.info("No open blockers")
     else:
         for idx, row in blocker_items_df.iterrows():
             ws_id = row.get("workstream_id")
@@ -270,7 +299,8 @@ with col_right:
             st.markdown(
                 f"""
                 <div style="background:rgba(255,255,255,0.04); border-radius:0.55rem;
-                            border:1px solid rgba(255,255,255,0.08); border-left:4px solid {age_color}; padding:0.75rem 0.9rem; margin-bottom:0.5rem;">
+                            border:1px solid rgba(255,255,255,0.08); border-left:4px solid {age_color};
+                            padding:0.75rem 0.9rem; margin-bottom:0.5rem; min-height:5.6rem;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.8rem;">
                         <div style="font-size:0.84rem; color:{ws_color}; font-weight:700;">{ws_name}</div>
                         <div style="font-size:1.35rem; color:{age_color}; font-weight:800; line-height:1;">{age_days}</div>
@@ -280,7 +310,12 @@ with col_right:
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("Open \u2192", key=f"open_blocker_{idx}_{ws_id}"):
+            if st.button(
+                f"Open blocker {idx}",
+                key=f"open_blocker_{idx}_{ws_id}",
+                use_container_width=True,
+                type="tertiary",
+            ):
                 st.session_state["open_workstream_id"] = ws_id
                 st.switch_page("pages/workstream.py")
 
@@ -336,7 +371,7 @@ try:
 except Exception:
     activity_df = pd.DataFrame()
 
-st.markdown("###  Recent Activity")
+st.markdown("### Recent Activity")
 if activity_df.empty:
     st.info("No recent activity yet.")
 else:
@@ -351,17 +386,18 @@ else:
 
         title = str(row.get("content_title") or "").strip()
         body = str(row.get("content_body") or "").strip()
-        preview_source = f"{title} — {body}" if title else body
+        preview_source = f"{title} - {body}" if title else body
         if len(preview_source) > 80:
             preview_source = preview_source[:80].rstrip() + "..."
         preview_html = html.escape(preview_source)
         time_text = time_ago(row.get("created_at"))
+        ws_id_act = str(row.get("workstream_id") or "")
 
         st.markdown(
             f"""
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.9rem;
                         background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
-                        border-radius:0.55rem; padding:0.65rem 0.8rem; margin-bottom:0.42rem;">
+                        border-radius:0.55rem; padding:0.65rem 0.8rem; margin-bottom:0.42rem; min-height:5.6rem;">
                 <div style="display:flex; align-items:flex-start; gap:0.7rem; min-width:0;">
                     <div style="width:28px; height:28px; border-radius:50%; background:#4DB6AC; color:#FFFFFF;
                                 display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0;">
@@ -383,12 +419,14 @@ else:
             """,
             unsafe_allow_html=True,
         )
-        _, btn_col = st.columns([5, 1])
-        with btn_col:
-            ws_id_act = str(row.get("workstream_id") or "")
-            if st.button("Open →", key=f"act_{act_idx}_{ws_id_act}", use_container_width=True):
-                st.session_state["open_workstream_id"] = ws_id_act
-                st.switch_page("pages/workstream.py")
+        if st.button(
+            f"Open activity {act_idx}",
+            key=f"act_{act_idx}_{ws_id_act}",
+            use_container_width=True,
+            type="tertiary",
+        ):
+            st.session_state["open_workstream_id"] = ws_id_act
+            st.switch_page("pages/workstream.py")
 
 if workstream_ids:
     try:

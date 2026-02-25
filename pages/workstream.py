@@ -43,6 +43,26 @@ def _get_owner_display_name(_workstream_id: str, owner_id: str | None) -> str:
         return "Unknown"
 
 
+@st.cache_data(show_spinner=False)
+def _get_contributor_count(_workstream_id: str) -> int:
+    if not _workstream_id:
+        return 0
+    try:
+        count_df = query_df(
+            """
+            SELECT COUNT(*) AS n
+            FROM workstream_members
+            WHERE workstream_id = %s
+              AND is_former_member = FALSE
+              AND role = 'contributor'
+            """,
+            (_workstream_id,),
+        )
+        return int(count_df.iloc[0].get("n") or 0) if not count_df.empty else 0
+    except Exception:
+        return 0
+
+
 require_auth()
 
 # ─── Sidebar navigation ───────────────────────────────────────────────────────
@@ -139,6 +159,7 @@ else:
         deadline_text = f"{abs(days_to_deadline)} days overdue"
 
 owner_display_name = _get_owner_display_name(str(workstream_id), ws.get("owner_id"))
+contributor_count = _get_contributor_count(str(workstream_id))
 
 col_left, col_right = st.columns([3, 2])
 
@@ -159,6 +180,9 @@ with col_right:
             <div style="font-weight:600;">
                 Owner: <span style="font-weight:400;">{html.escape(owner_display_name)}</span>
             </div>
+            <div style="font-weight:600;">
+                Contributors: <span style="font-weight:400;">{contributor_count}</span>
+            </div>
             <div style="font-weight:600;">{html.escape(deadline_text)}</div>
         </div>
         """,
@@ -174,9 +198,15 @@ if pd.notna(is_stale) and bool(is_stale):
 st.markdown("""
 <style>
 button[data-baseweb="tab"] {
-    font-size: 1.15rem !important;
-    font-weight: 600 !important;
-    padding: 0.6rem 1.2rem !important;
+    font-size: 1.22rem !important;
+    font-weight: 700 !important;
+    padding: 0.62rem 1.25rem !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    background: rgba(46,134,193,0.28) !important;
+    border: 1px solid rgba(93,173,226,0.5) !important;
+    border-bottom: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -188,10 +218,13 @@ tab_overview, tab_milestones, tab_budget, tab_blockers, tab_updates, tab_team = 
 
 st.markdown("""
 <style>
+div[data-testid="stTabsContent"] {
+    padding: 0.2rem 0.25rem 0.8rem 0.25rem;
+}
 div[data-testid="stTabsContent"] > div {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.035);
     border-radius: 0 0 0.6rem 0.6rem;
-    padding: 1rem 1.2rem;
+    padding: 1rem 1.5rem;
     border: 1px solid rgba(255,255,255,0.06);
     border-top: none;
 }
@@ -968,21 +1001,6 @@ with tab_blockers:
     st.markdown(
         f"**{len(open_bl)} open** · **{resolved_today} resolved today**"
     )
-
-    if not open_bl.empty:
-        open_ages = []
-        for _, ob in open_bl.iterrows():
-            dr = pd.to_datetime(ob.get("date_raised"), errors="coerce")
-            age = (today_date_bl - dr.date()) if pd.notna(dr) else None
-            open_ages.append(age.days if age is not None else 0)
-        aged_count = sum(1 for a in open_ages if a > aging_days)
-        if aged_count > 0:
-            st.markdown(
-                f"<div style='background:#FDEDEC; border-left:4px solid #E74C3C; padding:0.6rem 0.9rem; border-radius:0.3rem; margin-bottom:0.75rem;'>"
-                f"⚠️ <strong>{aged_count} blocker{'s' if aged_count != 1 else ''} have been open "
-                f"for more than {aging_days} days.</strong></div>",
-                unsafe_allow_html=True,
-            )
 
     # ── Open blockers ─────────────────────────────────────────────────────────
     if open_bl.empty:
