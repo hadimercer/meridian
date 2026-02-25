@@ -95,31 +95,25 @@ for col in ["is_stale", "description", "updated_at"]:
     if col not in df_all.columns:
         df_all[col] = False if col == "is_stale" else ("" if col == "description" else pd.NaT)
 
-col_header_left, col_header_right = st.columns([6, 1])
-with col_header_left:
-    st.markdown(
-        """
-        <div style="background:linear-gradient(90deg,#1B4F72 0%,#2E86C1 100%);
-                    border-radius:0.6rem; padding:1rem 1.4rem 0.9rem; margin-bottom:0.5rem;">
-            <h1 style="color:#FFFFFF; margin:0; font-size:1.8rem; font-weight:700;">My Portfolio</h1>
-            <p style="margin:0.25rem 0 0 0; color:rgba(255,255,255,0.82); font-size:0.88rem;">
-                Workstream health at a glance
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-with col_header_right:
-    st.markdown("<div style='height:0.35rem;'></div>", unsafe_allow_html=True)
-    if st.button("+ New Workstream", key="new_workstream_header", use_container_width=True):
-        st.session_state["open_workstream_id"] = None
-        st.switch_page("pages/create_workstream.py")
+# ── Full-width gradient header ────────────────────────────────────────────────
+st.markdown(
+    """
+    <div style="background:linear-gradient(90deg,#1B4F72 0%,#2E86C1 100%);
+                border-radius:0.6rem; padding:1rem 1.4rem 0.9rem; margin-bottom:0.5rem;">
+        <h1 style="color:#FFFFFF; margin:0; font-size:1.8rem; font-weight:700;">My Portfolio</h1>
+        <p style="margin:0.25rem 0 0 0; color:rgba(255,255,255,0.82); font-size:0.88rem;">
+            Workstream health at a glance
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 if df_all.empty:
     st.info("You don't have any active workstreams. Create one to get started.")
     st.stop()
 
-# Pulse bar
+# ── Pulse bar ─────────────────────────────────────────────────────────────────
 workstream_ids = [str(i) for i in df_all["id"].dropna().tolist()]
 
 if workstream_ids:
@@ -186,13 +180,15 @@ for col, (label, value, color) in zip(pulse_cols, pulse_data):
 
 st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
 
-# Filter bar
+# ── Filter bar — 4 dropdowns + New Workstream button ─────────────────────────
 st.session_state.setdefault("filter_status", "All Statuses")
 st.session_state.setdefault("filter_phase", "All Phases")
 st.session_state.setdefault("filter_role", "All Roles")
 st.session_state.setdefault("filter_sort", "Red to Green")
 
-filter_col_1, filter_col_2, filter_col_3, filter_col_4 = st.columns(4)
+filter_col_1, filter_col_2, filter_col_3, filter_col_4, filter_col_5 = st.columns(
+    [2.2, 2.2, 2.2, 2.2, 1.8]
+)
 
 with filter_col_1:
     st.selectbox(
@@ -218,9 +214,16 @@ with filter_col_4:
         key="filter_sort",
     )
 
+with filter_col_5:
+    # Spacer matches the height of the selectbox label so the button aligns vertically
+    st.markdown("<div style='height:1.72rem;'></div>", unsafe_allow_html=True)
+    if st.button("+ New Workstream", key="new_workstream_filter", use_container_width=True):
+        st.session_state["open_workstream_id"] = None
+        st.switch_page("pages/create_workstream.py")
+
 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
-# Apply filters
+# ── Apply filters ─────────────────────────────────────────────────────────────
 df_filtered = df_all.copy()
 df_filtered["end_date"] = pd.to_datetime(df_filtered["end_date"], errors="coerce")
 df_filtered["updated_at"] = pd.to_datetime(df_filtered["updated_at"], errors="coerce", utc=True)
@@ -346,7 +349,7 @@ def make_score_bar(label: str, score: int) -> str:
     )
 
 
-# Card rendering
+# ── Card rendering ────────────────────────────────────────────────────────────
 if df_filtered.empty:
     st.markdown(
         """
@@ -357,12 +360,19 @@ if df_filtered.empty:
         unsafe_allow_html=True,
     )
 else:
+    # KEY FIX: Apply the negative offset to the stButton wrapper div, not the inner button.
+    # Streamlit wraps every st.button() in div[data-testid="stButton"] which adds its own
+    # vertical spacing — putting the margin on the wrapper compensates for that gap.
+    # Card height is fixed (not min-height) so the overlay aligns precisely.
     st.markdown(
         """
         <style>
+        div[data-testid="stButton"]:has(button[kind="tertiary"]) {
+            margin-top: -14.8rem;
+            margin-bottom: 0.8rem;
+        }
         div[data-testid="stButton"] > button[kind="tertiary"] {
-            margin-top: -15.2rem;
-            height: 15.2rem;
+            height: 14.8rem;
             width: 100%;
             background: transparent !important;
             border: 1px solid transparent !important;
@@ -372,6 +382,7 @@ else:
         div[data-testid="stButton"] > button[kind="tertiary"]:hover {
             background: rgba(255,255,255,0.05) !important;
             border: 1px solid rgba(255,255,255,0.12) !important;
+            cursor: pointer;
         }
         </style>
         """,
@@ -386,8 +397,9 @@ else:
         ws_id = str(ws_row.get("id") or "")
         ws_name = str(ws_row.get("name") or "Untitled Workstream")
         ws_desc = str(ws_row.get("description") or "")
-        if len(ws_desc) > 120:
-            ws_desc = ws_desc[:120].rstrip() + "..."
+        # Trim to 90 chars — keeps content within the fixed card height
+        if len(ws_desc) > 90:
+            ws_desc = ws_desc[:90].rstrip() + "..."
 
         ws_rag = str(ws_row.get("rag_status") or "").lower()
         ws_role = str(ws_row.get("role") or "viewer").lower()
@@ -417,10 +429,11 @@ else:
         phase_e = html.escape(ws_phase)
         role_e = html.escape(ws_role.capitalize())
 
+        # height (not min-height) so the button overlay matches exactly.
         card_html = (
             f'<div style="background:rgba(255,255,255,0.04); border-radius:0.75rem;'
             f' border:1px solid rgba(255,255,255,0.08); border-left:5px solid {rag_color};'
-            f' padding:1.2rem 1.4rem; margin-bottom:0.8rem; min-height:15.2rem;">'
+            f' padding:1.2rem 1.4rem; height:14.8rem; overflow:hidden;">'
             f'<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">'
             '<div style="flex:1;">'
             f'<div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">'

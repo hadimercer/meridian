@@ -147,11 +147,16 @@ pulse_cols[5].markdown(pulse_tile("Open Blockers", open_blockers, "#8E44AD"), un
 
 st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
 
+# KEY FIX: Apply the negative offset to the stButton wrapper div, not the inner button.
+# height on each card is fixed (not min-height) so the overlay lands exactly on the card.
 st.markdown(
     """
 <style>
-div[data-testid="stButton"] > button[kind="tertiary"] {
+div[data-testid="stButton"]:has(button[kind="tertiary"]) {
     margin-top: -5.6rem;
+    margin-bottom: 0.45rem;
+}
+div[data-testid="stButton"] > button[kind="tertiary"] {
     height: 5.6rem;
     width: 100%;
     background: transparent !important;
@@ -162,6 +167,7 @@ div[data-testid="stButton"] > button[kind="tertiary"] {
 div[data-testid="stButton"] > button[kind="tertiary"]:hover {
     background: rgba(255,255,255,0.05) !important;
     border: 1px solid rgba(255,255,255,0.14) !important;
+    cursor: pointer;
 }
 </style>
 """,
@@ -221,17 +227,18 @@ with col_left:
             due_date_dt = pd.to_datetime(row.get("due_date"), errors="coerce")
             due_date_text = due_date_dt.strftime("%Y-%m-%d") if pd.notna(due_date_dt) else "Unknown"
 
+            # height (not min-height) matches the overlay button height of 5.6rem
             st.markdown(
                 f"""
                 <div style="background:{row_bg}; border-radius:0.6rem; border:1px solid rgba(255,255,255,0.08);
-                            padding:0.8rem 0.95rem; margin-bottom:0.45rem; min-height:5.6rem;">
+                            padding:0.8rem 0.95rem; height:5.6rem; overflow:hidden;">
                     <div style="display:flex; justify-content:space-between; gap:0.8rem;">
                         <div>
                             <div style="font-size:0.85rem; color:{ws_color}; font-weight:700;">{ws_name}</div>
                             <div style="font-size:0.98rem; color:#FFFFFF; font-weight:600; margin-top:0.1rem;">{milestone_name}</div>
                             <div style="font-size:0.78rem; color:rgba(255,255,255,0.68); margin-top:0.15rem;">Due: {due_date_text}</div>
                         </div>
-                        <div style="text-align:right;">
+                        <div style="text-align:right; white-space:nowrap;">
                             <div style="font-size:1.35rem; color:{day_color}; font-weight:800;">{days_overdue}</div>
                             <div style="font-size:0.74rem; color:rgba(255,255,255,0.65);">days overdue</div>
                         </div>
@@ -296,14 +303,15 @@ with col_right:
                 description = description[:100].rstrip() + "..."
             description_html = html.escape(description)
 
+            # height (not min-height) matches the overlay button height of 5.6rem
             st.markdown(
                 f"""
                 <div style="background:rgba(255,255,255,0.04); border-radius:0.55rem;
                             border:1px solid rgba(255,255,255,0.08); border-left:4px solid {age_color};
-                            padding:0.75rem 0.9rem; margin-bottom:0.5rem; min-height:5.6rem;">
+                            padding:0.75rem 0.9rem; height:5.6rem; overflow:hidden;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.8rem;">
                         <div style="font-size:0.84rem; color:{ws_color}; font-weight:700;">{ws_name}</div>
-                        <div style="font-size:1.35rem; color:{age_color}; font-weight:800; line-height:1;">{age_days}</div>
+                        <div style="font-size:1.35rem; color:{age_color}; font-weight:800; line-height:1; white-space:nowrap;">{age_days}d</div>
                     </div>
                     <div style="font-size:0.8rem; color:rgba(255,255,255,0.82); margin-top:0.25rem;">{description_html}</div>
                 </div>
@@ -393,11 +401,12 @@ else:
         time_text = time_ago(row.get("created_at"))
         ws_id_act = str(row.get("workstream_id") or "")
 
+        # height (not min-height) matches the overlay button height of 5.6rem
         st.markdown(
             f"""
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.9rem;
                         background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
-                        border-radius:0.55rem; padding:0.65rem 0.8rem; margin-bottom:0.42rem; min-height:5.6rem;">
+                        border-radius:0.55rem; padding:0.65rem 0.8rem; height:5.6rem; overflow:hidden;">
                 <div style="display:flex; align-items:flex-start; gap:0.7rem; min-width:0;">
                     <div style="width:28px; height:28px; border-radius:50%; background:#4DB6AC; color:#FFFFFF;
                                 display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0;">

@@ -219,14 +219,12 @@ tab_overview, tab_milestones, tab_budget, tab_blockers, tab_updates, tab_team = 
 st.markdown("""
 <style>
 div[data-testid="stTabsContent"] {
-    padding: 0.2rem 0.25rem 0.8rem 0.25rem;
-}
-div[data-testid="stTabsContent"] > div {
     background: rgba(255,255,255,0.035);
     border-radius: 0 0 0.6rem 0.6rem;
-    padding: 1rem 1.5rem;
+    padding: 1.2rem 2rem 1.5rem 2rem;
     border: 1px solid rgba(255,255,255,0.06);
     border-top: none;
+    margin-top: 0;
 }
 </style>
 """, unsafe_allow_html=True)
