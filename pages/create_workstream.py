@@ -21,7 +21,7 @@ with st.sidebar:
     st.divider()
     _sidebar_user = get_current_user()
     if _sidebar_user:
-        _sidebar_uid = _sidebar_user.get("id")
+        _sidebar_uid = getattr(_sidebar_user, "id", None)
         try:
             _dn_df = query_df(
                 "SELECT display_name FROM users WHERE id = %s", (_sidebar_uid,)
@@ -33,7 +33,7 @@ with st.sidebar:
             _display_name = ""
         if _display_name:
             st.markdown(f"**{_display_name}**")
-        st.caption(_sidebar_user.get("email", ""))
+        st.caption(getattr(_sidebar_user, "email", ""))
     if st.button("Sign Out", key="sidebar_signout_create"):
         logout()
 

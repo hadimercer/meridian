@@ -31,7 +31,7 @@ def get_current_user_id() -> str | None:
     guard against a missing 'id' key themselves.
     """
     user = get_current_user()
-    return user["id"] if user is not None else None
+    return getattr(user, "id", None) if user is not None else None
 
 
 def is_authenticated() -> bool:
