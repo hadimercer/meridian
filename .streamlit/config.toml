@@ -1,9 +1,9 @@
 [theme]
-base                  = "dark"
-primaryColor          = "#4DB6AC"
-backgroundColor       = "#0E1117"
+base = "dark"
+primaryColor = "#4DB6AC"
+backgroundColor = "#0E1117"
 secondaryBackgroundColor = "#262730"
-textColor             = "#FAFAFA"
+textColor = "#FAFAFA"
 
-[server]
-headless = true
+[client]
+showSidebarNavigation = false

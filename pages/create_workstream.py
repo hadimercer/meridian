@@ -308,8 +308,7 @@ else:
                 # 6–8. Clear cache, confirm, navigate
                 query_df.clear()
                 del st.session_state["new_ws_data"]
-                st.success("Workstream created.")
-                st.query_params["id"] = new_ws_id
+                st.session_state["open_workstream_id"] = new_ws_id
                 st.switch_page("pages/workstream.py")
 
             except Exception as error:

@@ -50,7 +50,7 @@ with st.sidebar:
     if st.button("Sign Out", key="sidebar_signout_ws"):
         logout()
 
-workstream_id = st.query_params.get("id", None)
+workstream_id = st.query_params.get("id", None) or st.session_state.pop("open_workstream_id", None)
 if workstream_id is None:
     st.error("No workstream specified.")
     st.stop()
