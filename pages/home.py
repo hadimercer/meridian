@@ -83,7 +83,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-workstream_ids = df_all["id"].dropna().tolist() if not df_all.empty else []
+workstream_ids = [str(i) for i in df_all["id"].dropna().tolist()]
 
 if workstream_ids:
     try:
@@ -268,8 +268,8 @@ with col_right:
 
             st.markdown(
                 f"""
-                <div style="background:rgba(255,255,255,0.04); border-left:4px solid {age_color}; border-radius:0.55rem;
-                            border:1px solid rgba(255,255,255,0.08); padding:0.75rem 0.9rem; margin-bottom:0.5rem;">
+                <div style="background:rgba(255,255,255,0.04); border-radius:0.55rem;
+                            border:1px solid rgba(255,255,255,0.08); border-left:4px solid {age_color}; padding:0.75rem 0.9rem; margin-bottom:0.5rem;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.8rem;">
                         <div style="font-size:0.84rem; color:{ws_color}; font-weight:700;">{ws_name}</div>
                         <div style="font-size:1.35rem; color:{age_color}; font-weight:800; line-height:1;">{age_days}</div>
@@ -382,6 +382,12 @@ else:
             """,
             unsafe_allow_html=True,
         )
+        _, btn_col = st.columns([5, 1])
+        with btn_col:
+            ws_id_act = str(row.get("workstream_id") or "")
+            if st.button("Open →", key=f"act_{ws_id_act}", use_container_width=True):
+                st.session_state["open_workstream_id"] = ws_id_act
+                st.switch_page("pages/workstream.py")
 
 if workstream_ids:
     try:

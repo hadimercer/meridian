@@ -20,7 +20,7 @@ if invite_token:
     st.session_state["pending_invite_token"] = invite_token
 
 if st.session_state["user"] is not None:
-    st.switch_page("pages/dashboard.py")
+    st.switch_page("pages/home.py")
 
 supabase = get_supabase_client()
 
@@ -81,7 +81,7 @@ with sign_in_tab:
             if response and response.user and response.session:
                 st.session_state["user"] = response.user
                 st.session_state["session"] = response.session
-                st.switch_page("pages/dashboard.py")
+                st.switch_page("pages/home.py")
             else:
                 st.error("Invalid email or password. Please try again.")
         except Exception:
