@@ -92,68 +92,135 @@ st.markdown(
 
 st.markdown("## Portfolio Health Snapshot")
 
-fig1 = go.Figure()
-fig1.add_trace(
-    go.Bar(
-        name="Schedule",
-        y=df_all["name"],
-        x=df_all["schedule_score"],
-        orientation="h",
-        marker_color="#4DB6AC",
-    )
-)
-fig1.add_trace(
-    go.Bar(
-        name="Budget",
-        y=df_all["name"],
-        x=df_all["budget_score"],
-        orientation="h",
-        marker_color="#5DADE2",
-    )
-)
-fig1.add_trace(
-    go.Bar(
-        name="Blockers",
-        y=df_all["name"],
-        x=df_all["blocker_score"],
-        orientation="h",
-        marker_color="#F39C12",
-    )
-)
-fig1.update_layout(
-    barmode="group",
-    height=max(300, len(df_all) * 60),
-    plot_bgcolor="rgba(0,0,0,0)",
-    paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#FAFAFA", family="Arial"),
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="center",
-        x=0.5,
-        font=dict(color="#FAFAFA"),
-        bgcolor="rgba(255,255,255,0.06)",
-    ),
-    xaxis=dict(range=[0, 100], gridcolor="rgba(255,255,255,0.08)", tickfont=dict(color="#FAFAFA")),
-    yaxis=dict(tickfont=dict(color="#FAFAFA")),
-    margin=dict(t=60, b=40, l=180, r=30),
-)
-fig1.add_vline(
-    x=70,
-    line_dash="dash",
-    line_color="rgba(39,174,96,0.5)",
-    annotation_text="Green threshold",
-    annotation_font_color="#27AE60",
-)
-fig1.add_vline(
-    x=40,
-    line_dash="dash",
-    line_color="rgba(243,156,18,0.5)",
-    annotation_text="Amber threshold",
-    annotation_font_color="#F39C12",
-)
-st.plotly_chart(fig1, use_container_width=True)
+history_sql = """
+    SELECT  h.snapshot_date,
+            h.composite_score,
+            w.name AS workstream
+    FROM    rag_score_history h
+    JOIN    workstreams w ON w.id = h.workstream_id
+    JOIN    workstream_members wm ON wm.workstream_id = w.id
+    WHERE   wm.user_id = %s
+      AND   wm.is_former_member = FALSE
+    ORDER BY h.snapshot_date ASC
+"""
+try:
+    history_df = query_df(history_sql, (current_user_id,))
+except Exception:
+    history_df = pd.DataFrame()
+
+if history_df.empty:
+    st.info("No score history available yet.")
+else:
+    history_df["snapshot_date"] = pd.to_datetime(history_df["snapshot_date"], errors="coerce")
+    history_df["composite_score"] = pd.to_numeric(history_df["composite_score"], errors="coerce")
+    history_df = history_df.dropna(subset=["snapshot_date", "composite_score", "workstream"])
+
+    if history_df.empty:
+        st.info("No score history available yet.")
+    else:
+        ws_names = sorted(history_df["workstream"].unique().tolist())
+        options = ["All Workstreams"] + ws_names
+        selected = st.selectbox("Filter by workstream:", options, key="trend_ws_select")
+
+        if selected != "All Workstreams":
+            chart_df = history_df[history_df["workstream"] == selected]
+        else:
+            chart_df = history_df
+
+        fig1 = go.Figure()
+
+        fig1.add_hrect(y0=70, y1=100, fillcolor="rgba(39,174,96,0.08)", line_width=0, layer="below")
+        fig1.add_hrect(y0=40, y1=70, fillcolor="rgba(243,156,18,0.08)", line_width=0, layer="below")
+        fig1.add_hrect(y0=0, y1=40, fillcolor="rgba(231,76,60,0.08)", line_width=0, layer="below")
+
+        fig1.add_hline(y=70, line_dash="dash", line_color="rgba(39,174,96,0.4)", line_width=1)
+        fig1.add_hline(y=40, line_dash="dash", line_color="rgba(243,156,18,0.4)", line_width=1)
+
+        line_colors = ["#4DB6AC", "#5DADE2", "#F39C12", "#E74C3C", "#9B59B6", "#E67E22", "#1ABC9C", "#E91E63"]
+        for idx, ws_name in enumerate(chart_df["workstream"].unique()):
+            ws_data = chart_df[chart_df["workstream"] == ws_name].sort_values("snapshot_date")
+            color = line_colors[idx % len(line_colors)]
+            fig1.add_trace(
+                go.Scatter(
+                    x=ws_data["snapshot_date"],
+                    y=ws_data["composite_score"],
+                    mode="lines+markers",
+                    name=ws_name,
+                    line=dict(color=color, width=2.5),
+                    marker=dict(size=5, color=color),
+                    hovertemplate=f"<b>{ws_name}</b><br>Date: %{{x}}<br>Score: %{{y:.0f}}<extra></extra>",
+                )
+            )
+
+        fig1.update_layout(
+            height=420,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA", family="Arial"),
+            yaxis=dict(
+                range=[0, 100],
+                gridcolor="rgba(255,255,255,0.08)",
+                tickfont=dict(color="#FAFAFA"),
+                title="Composite Health Score",
+                title_font=dict(color="#FAFAFA"),
+                tickvals=[0, 20, 40, 60, 70, 80, 100],
+            ),
+            xaxis=dict(
+                gridcolor="rgba(255,255,255,0.06)",
+                tickfont=dict(color="#FAFAFA"),
+                title="Date",
+                title_font=dict(color="#FAFAFA"),
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5,
+                font=dict(color="#FAFAFA", size=11),
+                bgcolor="rgba(255,255,255,0.06)",
+                bordercolor="rgba(255,255,255,0.15)",
+                borderwidth=1,
+            ),
+            margin=dict(t=80, b=50, l=70, r=30),
+            hoverlabel=dict(bgcolor="#1E2530", font_color="#FAFAFA"),
+        )
+
+        fig1.add_annotation(
+            x=1.01,
+            y=85,
+            xref="paper",
+            yref="y",
+            text=" Green",
+            showarrow=False,
+            font=dict(color="rgba(39,174,96,0.8)", size=11),
+            xanchor="left",
+        )
+        fig1.add_annotation(
+            x=1.01,
+            y=55,
+            xref="paper",
+            yref="y",
+            text=" Amber",
+            showarrow=False,
+            font=dict(color="rgba(243,156,18,0.8)", size=11),
+            xanchor="left",
+        )
+        fig1.add_annotation(
+            x=1.01,
+            y=20,
+            xref="paper",
+            yref="y",
+            text=" Red",
+            showarrow=False,
+            font=dict(color="rgba(231,76,60,0.8)", size=11),
+            xanchor="left",
+        )
+
+        st.plotly_chart(fig1, use_container_width=True)
+        st.caption(
+            "Composite score = weighted average of Schedule (40%), Budget (35%), and Blocker (25%) health dimensions. Bands show RAG thresholds."
+        )
 
 st.markdown("## Schedule vs Budget Matrix")
 
@@ -210,7 +277,16 @@ for label, x_val, y_val in [
         font=dict(color="rgba(255,255,255,0.35)", size=11),
     )
 st.plotly_chart(fig2, use_container_width=True)
-st.caption("Bubble size = composite score. Top-right quadrant = healthy on both dimensions.")
+st.caption(
+    "Each bubble represents one workstream. "
+    "X axis = Schedule Health score (0–100). "
+    "Y axis = Budget Health score (0–100). "
+    "Bubble size = composite score — larger means healthier overall. "
+    "Color = current RAG status. "
+    "Top-right quadrant = on schedule AND on budget. "
+    "Bottom-left = at risk on both dimensions. "
+    "Dashed lines mark the Green threshold (70) on each axis."
+)
 
 st.markdown("## Milestone Velocity")
 
@@ -262,7 +338,7 @@ if not milestone_df.empty:
     table_html = """
     <div style="border:1px solid rgba(255,255,255,0.08); border-radius:0.6rem; overflow:hidden; margin-bottom:1rem;">
       <div style="display:grid; grid-template-columns:2.2fr 1.2fr 1fr 1fr 1.4fr; gap:0.4rem; background:rgba(255,255,255,0.06); padding:0.6rem 0.8rem; font-size:0.78rem; font-weight:700; color:#FAFAFA;">
-        <div>Workstream</div><div>Milestones</div><div>In Progress</div><div>Overdue</div><div>Completion</div>
+        <div>Workstream</div><div>Not Started</div><div>In Progress</div><div>Overdue</div><div>Completion Rate</div>
       </div>
     """
 
@@ -272,13 +348,13 @@ if not milestone_df.empty:
         ws_color = rag_colors.get(rag_status, "#888")
         ws_name = html.escape(str(row.get("workstream") or "Unknown"))
 
-        complete = int(row["complete"])
-        total = int(row["total"])
+        not_started = int(row["not_started"])
         in_progress = int(row["in_progress"])
         overdue = int(row["overdue"])
         completion_rate = int(row["completion_rate"])
 
         overdue_style = "color:#E74C3C; font-weight:800;" if overdue > 0 else "color:#27AE60; font-weight:700;"
+        in_progress_style = "color:#F39C12;" if in_progress > 0 else "color:rgba(255,255,255,0.5);"
 
         table_html += (
             "<div style='display:grid; grid-template-columns:2.2fr 1.2fr 1fr 1fr 1.4fr; gap:0.4rem; background:"
@@ -289,14 +365,14 @@ if not milestone_df.empty:
             + "; font-weight:700;'>"
             + ws_name
             + "</div>"
-            + "<div>"
-            + str(complete)
-            + "/"
-            + str(total)
-            + " milestones</div>"
-            + "<div>"
+            + "<div style='color:rgba(255,255,255,0.6);'>"
+            + str(not_started)
+            + "</div>"
+            + "<div style='"
+            + in_progress_style
+            + "'>"
             + str(in_progress)
-            + " in progress</div>"
+            + "</div>"
             + "<div style='"
             + overdue_style
             + "'>"
@@ -322,14 +398,17 @@ blocker_sql = """
             (CURRENT_DATE - b.date_raised) AS age_days,
             w.name AS workstream,
             w.id   AS workstream_id,
-            r.rag_status
+            r.rag_status,
+            COUNT(c.id) AS comment_count
     FROM    blockers b
     JOIN    workstreams w ON w.id = b.workstream_id
     LEFT JOIN rag_scores r ON r.workstream_id = w.id
+    LEFT JOIN comments c ON c.entity_id = b.id AND c.entity_type = 'blocker'
     JOIN    workstream_members wm ON wm.workstream_id = w.id
     WHERE   wm.user_id          = %s
       AND   wm.is_former_member = FALSE
       AND   b.status            = 'open'
+    GROUP BY b.id, b.description, b.date_raised, w.name, w.id, r.rag_status
     ORDER BY age_days DESC
 """
 try:
@@ -359,12 +438,9 @@ else:
         ws_name = html.escape(str(row.get("workstream") or "Unknown"))
 
         description = str(row.get("description") or "")
-        if len(description) > 90:
-            description = description[:90].rstrip() + "..."
         description_html = html.escape(description)
-
-        raised_dt = pd.to_datetime(row.get("date_raised"), errors="coerce")
-        raised_text = raised_dt.strftime("%Y-%m-%d") if pd.notna(raised_dt) else "Unknown"
+        comments_count = int(pd.to_numeric(row.get("comment_count"), errors="coerce") or 0)
+        comment_text = f"{comments_count} comment{'s' if comments_count != 1 else ''}"
 
         st.markdown(
             f"""
@@ -374,7 +450,7 @@ else:
                 <div style="font-size:1.2rem; font-weight:800; color:{age_color}; text-align:center;">{age_days}</div>
                 <div style="font-size:0.84rem; font-weight:700; color:{ws_color};">{ws_name}</div>
                 <div style="font-size:0.8rem; color:rgba(255,255,255,0.85);">{description_html}</div>
-                <div style="font-size:0.76rem; color:rgba(255,255,255,0.65); text-align:right;">{raised_text}</div>
+                <div style="font-size:0.76rem; color:rgba(255,255,255,0.65); text-align:right;">{comment_text}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -397,6 +473,7 @@ else:
         xaxis=dict(tickfont=dict(color="#FAFAFA"), gridcolor="rgba(255,255,255,0.08)"),
         yaxis=dict(tickfont=dict(color="#FAFAFA")),
         margin=dict(t=20, b=30, l=160, r=30),
-        title=dict(text="Open Blockers by Workstream", font=dict(color="#FAFAFA", size=13)),
+        title=dict(text="Open Blockers by Workstream", font=dict(color="#FAFAFA", size=16)),
     )
+    st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
     st.plotly_chart(fig4, use_container_width=True)
