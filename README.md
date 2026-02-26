@@ -69,6 +69,43 @@ The fallback is a spreadsheet with a RAG column updated when there is time on a 
 
 ---
 
+## BA Process — How This Was Built
+
+This section documents the business analysis process behind Meridian. The FRD (`docs/Meridian_FRD_v1.docx`) contains the complete artifact set; this section surfaces the thinking that drove the requirements, as that reasoning is as important as the output.
+
+### 1. Problem Discovery → Target User Definition
+
+The problem statement did not start as a feature list. It started with a single observation: professionals who manage parallel workstreams abandon structured tools quickly, then revert to spreadsheets with manually updated RAG columns. The core question was not "what should the tool do?" but "why do existing tools fail this user?"
+
+Three stakeholder archetypes were defined before any functional requirements were written:
+
+- **The Independent Operator** — a BA or consultant managing 3–5 concurrent engagements with no team, using tools solo, primarily needs a personal health signal and an honest prompt to act
+- **The Team Lead** — manages a cross-functional team, needs to delegate data entry, control what information is visible to which role, and communicate status upward without manual aggregation
+- **The Executive Reviewer** — no data entry, needs a single-screen portfolio health view and a trend line, will disengage immediately if the tool requires any learning curve
+
+Each archetype drove different requirements. The Viewer role (FR-28, FR-30) exists specifically because the Executive Reviewer persona cannot be asked to manage data. The invite-link flow (FR-03, FR-30) exists because Team Leads need to onboard collaborators without an admin approval step. The staleness flag (FR-10, NFR-01a) exists because the Independent Operator needs the system to alert them when their own data has gone stale — they will not self-monitor.
+
+### 2. Scoring Engine as a Requirements Problem
+
+The most consequential design decision in Meridian was treating the RAG scoring engine as a requirements problem before a technical one. The temptation in any health-tracking tool is to let users set their own thresholds or pick their own RAG colour. This was explicitly rejected in the FRD's product philosophy section because it reproduces the exact failure mode of the spreadsheet: health status becomes a declaration rather than a calculation.
+
+The 9-question wizard emerged from a specific requirements challenge: a hard-deadline client engagement and a self-imposed internal initiative cannot be scored by the same thresholds without producing meaningless results for one of them. The wizard answers are not preferences — they are inputs that change the scoring model. The modifier matrix in FRD Section 5.3 documents every combination and its effect on the three health dimensions.
+
+This approach required defining the scoring logic as functional requirements (FR-07 to FR-10) with explicit acceptance criteria before any code was written. The scoring module (`pipeline/scoring.py`) was then built directly against those requirements, with the database schema designed to persist both the wizard configuration and the calculated scores for auditability (NFR-01a, NFR-01b).
+
+### 3. Scope Discipline — What Was Deliberately Left Out
+
+Several capabilities were scoped out of v1 with documented rationale in the FRD:
+
+- **Notifications and alerts** were excluded because they require async infrastructure (email/SMS delivery, notification queues) that would add significant complexity without changing the core BA demonstration. The staleness flag serves the alerting intent at the UI level.
+- **File attachments** were excluded because they introduce storage infrastructure and access control complexity disproportionate to their value for a v1 health-tracking tool.
+- **Gantt chart or timeline view** was excluded because it repositions the product identity toward project management tools — exactly the category Meridian is designed to replace for non-PM users.
+- **Public sharing** was excluded because it conflicts with the data sensitivity model. Workstream data often contains budget figures and blocker details that should not be publicly accessible.
+
+Scoping decisions are documented in the FRD constraints and assumptions section. Each exclusion has a rationale. This is intentional — in a real engagement, unexplained scope boundaries are a common source of stakeholder misalignment.
+
+---
+
 ## Application Architecture
 
 ```
@@ -357,6 +394,49 @@ SUPABASE_ANON_KEY = "your-anon-key"
 | FR-33 | Artifacts | BABOK-aligned FRD | ✅ |
 | FR-34 | Artifacts | UML class diagram — data model | ✅ |
 | FR-35 | Artifacts | BPMN — workstream lifecycle + invite sub-process | ✅ |
+
+---
+
+## Continuous Improvement Roadmap
+
+Meridian is actively maintained as part of an ongoing BA portfolio. The v1 scope was bounded to demonstrate full-stack delivery and rigorous requirements thinking within a realistic timeline. The following enhancements are planned for future iterations and will be implemented progressively as skills develop across the broader portfolio.
+
+### Phase 2 — Notifications & Async Intelligence
+
+| Enhancement | Description | Priority |
+|---|---|---|
+| Email Notifications | Alert owners when a workstream crosses from Amber to Red, or when a milestone becomes overdue, reducing reliance on the user actively checking the app | High |
+| Slack / Teams Integration | Push a daily portfolio health summary to a nominated channel, enabling passive awareness for users who live in messaging tools | Medium |
+| Scheduled Score Recalculation | Run scoring engine on a background cron trigger so score drift is captured even when no data entry occurs | Medium |
+| In-App Notification Centre | Centralised notification feed for mentions, status changes, and overdue alerts within the application itself | Low |
+
+### Phase 3 — Reporting & Analytics
+
+| Enhancement | Description | Priority |
+|---|---|---|
+| Exportable Status Report | One-click PDF or structured email summary of a workstream's current health, milestone status, and open blockers — formatted for upward reporting | High |
+| Cross-Portfolio Benchmarking | Compare average health scores across workstream types, phases, or team sizes to identify patterns across the portfolio | Medium |
+| Milestone Velocity Forecasting | Use historical completion rate to project whether the current workstream will meet its deadline at the current pace | Medium |
+| Custom Scoring Profiles | Allow power users to define their own dimension weightings rather than relying solely on wizard-derived adjustments | Low |
+
+### Phase 4 — Collaboration & Access
+
+| Enhancement | Description | Priority |
+|---|---|---|
+| Guest View (No Account) | Time-limited read-only link for external stakeholders who need visibility without creating an account | High |
+| SSO / OAuth Integration | Support Google or Microsoft login to reduce friction for professional users in corporate environments | Medium |
+| Organisation-Level Accounts | Group multiple users under a shared organisation with admin management, enabling team-level portfolio views | Medium |
+| File Attachments | Allow documents and images to be attached to milestones, blockers, and updates for richer context | Low |
+
+### Phase 5 — AI-Assisted BA Features
+
+| Enhancement | Description | Priority |
+|---|---|---|
+| Auto-Generated Status Summary | Use an LLM to generate a plain-English status update from the current workstream data — draft for the owner to review and post | High |
+| Risk Identification | Analyse blocker patterns and schedule variance trends to surface a recommended risk flag before the RAG score reaches Red | Medium |
+| Wizard Answer Suggestions | Based on workstream name, description, and phase, suggest likely answers to the context wizard to reduce setup friction | Low |
+
+> **Note on portfolio maintenance:** These roadmap items will be implemented and documented progressively. Each feature build will be accompanied by updated FRD sections, revised data model artifacts where relevant, and README updates — maintaining the traceability discipline established in v1. The goal is not just to ship features but to demonstrate how a BA manages evolving requirements across a product lifecycle.
 
 ---
 
